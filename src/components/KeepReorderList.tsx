@@ -1,10 +1,11 @@
 import type { ClassifiedInventoryRow } from "@/lib/types";
+import { formatInr } from "@/lib/format";
 import ClassificationBadge from "./ClassificationBadge";
 
 export default function KeepReorderList({ rows }: { rows: ClassifiedInventoryRow[] }) {
   const items = rows
     .filter((r) => r.classification === "Keep & Reorder")
-    .sort((a, b) => (a.daysOnHand ?? Infinity) - (b.daysOnHand ?? Infinity));
+    .sort((a, b) => (a.daysInStock ?? Infinity) - (b.daysInStock ?? Infinity));
 
   return (
     <div className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -18,7 +19,8 @@ export default function KeepReorderList({ rows }: { rows: ClassifiedInventoryRow
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-800">{r.productName}</p>
                 <p className="text-xs text-slate-500">
-                  {r.daysOnHand !== null ? `Runs out in ${r.daysOnHand.toFixed(1)} days` : "No sales rate"}
+                  {r.daysInStock !== null ? `${r.daysInStock} days on hand` : "No sale data"} ·{" "}
+                  {formatInr(r.value)} locked
                 </p>
               </div>
               <ClassificationBadge classification={r.classification} />
