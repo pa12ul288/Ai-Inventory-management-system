@@ -16,7 +16,9 @@ const RULES_PROMPT = `You are classifying medical distributor inventory into exa
 labels, using these rules and this priority order:
 
 1. "Sell off" — if daysInStock >= 60 (no movement for 60+ days) OR daysOnHand > 90.
-2. "Keep & Reorder" — else if daysOnHand is not null and daysOnHand < 14 (will run out in under 14 days at current rate).
+2. "Keep & Reorder" — else if EITHER of these holds:
+   a. daysOnHand is not null and daysOnHand < 14 (will run out in under 14 days at current rate), OR
+   b. daysInStock is not null and daysInStock <= 30 (last sold within 30 days) AND daysOnHand is not null and daysOnHand < 30 (will run out in under 30 days at current rate).
 3. "Watch" — otherwise (slower than normal but still moving, or not enough data).
 
 daysInStock = days since the product last sold (null if unknown).
