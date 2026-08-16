@@ -3,6 +3,7 @@
 import { useState } from "react";
 import UploadScreen from "@/components/UploadScreen";
 import Dashboard from "@/components/Dashboard";
+import AppShell from "@/components/AppShell";
 import { saveUpload, saveClassifications } from "@/lib/storage";
 import { computeFeatures } from "@/lib/classify";
 import { computeKpis } from "@/lib/kpis";
@@ -76,9 +77,15 @@ export default function Home() {
 
   if (view === "dashboard") {
     return (
-      <Dashboard filename={filename} rows={rows} kpis={computeKpis(rows)} onUploadNew={handleUploadNew} />
+      <AppShell active="Dashboard">
+        <Dashboard filename={filename} rows={rows} kpis={computeKpis(rows)} onUploadNew={handleUploadNew} />
+      </AppShell>
     );
   }
 
-  return <UploadScreen onAnalyze={handleAnalyze} analyzing={analyzing} errorMessage={error} />;
+  return (
+    <AppShell active="Dashboard">
+      <UploadScreen onAnalyze={handleAnalyze} analyzing={analyzing} errorMessage={error} />
+    </AppShell>
+  );
 }

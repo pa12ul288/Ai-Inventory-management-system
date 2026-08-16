@@ -7,7 +7,7 @@ export default function KeepReorderList({ rows }: { rows: ClassifiedInventoryRow
     .sort((a, b) => (a.daysOnHand ?? Infinity) - (b.daysOnHand ?? Infinity));
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 font-semibold text-slate-900">Keep &amp; Reorder</h2>
       {items.length === 0 ? (
         <p className="text-sm text-slate-400">Nothing urgent to reorder right now.</p>

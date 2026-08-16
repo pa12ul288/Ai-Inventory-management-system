@@ -24,16 +24,16 @@ export default function Dashboard({ filename, rows, kpis, onUploadNew }: Dashboa
   const reorderRows = rows.filter((r) => r.classification === "Keep & Reorder");
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+      <div id="dashboard-top" className="mb-6 flex flex-wrap items-center justify-between gap-4 scroll-mt-20">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">AI Inventory Management System</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500">{filename}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div id="reports" className="flex flex-wrap gap-2 scroll-mt-20">
           <button
             onClick={() => downloadPdfReport(rows, kpis)}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
           >
             Generate Full AI Report
           </button>
@@ -69,11 +69,17 @@ export default function Dashboard({ filename, rows, kpis, onUploadNew }: Dashboa
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SellOffList rows={rows} />
-        <KeepReorderList rows={rows} />
+        <div id="sell-off" className="scroll-mt-20">
+          <SellOffList rows={rows} />
+        </div>
+        <div id="reorder" className="scroll-mt-20">
+          <KeepReorderList rows={rows} />
+        </div>
       </div>
 
-      <InventoryTable rows={rows} />
+      <div id="inventory" className="scroll-mt-20">
+        <InventoryTable rows={rows} />
+      </div>
 
       {modal === "sellOff" && (
         <FilterModal

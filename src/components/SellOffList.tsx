@@ -8,7 +8,7 @@ export default function SellOffList({ rows }: { rows: ClassifiedInventoryRow[] }
     .sort((a, b) => (b.daysInStock ?? 0) - (a.daysInStock ?? 0));
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 font-semibold text-slate-900">Sell Off</h2>
       {items.length === 0 ? (
         <p className="text-sm text-slate-400">Nothing to clear right now.</p>
