@@ -18,22 +18,31 @@ labels, using these rules and this priority order:
 1. "Sell off" — if daysInStock >= 60 (no movement for 60+ days) OR daysOnHand > 90.
 2. "Keep & Reorder" — else if EITHER of these holds:
    a. daysOnHand is not null and daysOnHand < 14 (will run out in under 14 days at current rate), OR
-   b. daysInStock is not null and daysInStock <= 30 (last sold within 30 days) AND daysOnHand is not null and daysOnHand < 30 (will run out in under 30 days at current rate).
+   b. lastSaleDate falls within August 2026 AND quantityOnHand < 500.
 3. "Watch" — otherwise (slower than normal but still moving, or not enough data).
 
 daysInStock = days since the product last sold (null if unknown).
 daysOnHand = quantityOnHand / avgDailySales, i.e. days of stock remaining at the current sales rate (null if avgDailySales is 0).
+lastSaleDate = the product's last sale date as YYYY-MM-DD (null if unknown).
 
 Apply the rules exactly and mechanically — do not use outside judgement. A null value never
 satisfies a numeric condition. Return a classification for every item, in the same order given.`;
 
-function buildBatchPrompt(items: { id: string; daysInStock: number | null; daysOnHand: number | null }[]) {
+type GeminiBatchItem = {
+  id: string;
+  daysInStock: number | null;
+  daysOnHand: number | null;
+  lastSaleDate: string | null;
+  quantityOnHand: number;
+};
+
+function buildBatchPrompt(items: GeminiBatchItem[]) {
   const table = items
     .map(
       (it) =>
         `id=${it.id} daysInStock=${it.daysInStock ?? "null"} daysOnHand=${
           it.daysOnHand !== null ? it.daysOnHand.toFixed(2) : "null"
-        }`
+        } lastSaleDate=${it.lastSaleDate ?? "null"} quantityOnHand=${it.quantityOnHand}`
     )
     .join("\n");
   return `${RULES_PROMPT}\n\nItems:\n${table}`;
@@ -41,7 +50,7 @@ function buildBatchPrompt(items: { id: string; daysInStock: number | null; daysO
 
 async function classifyBatchWithGemini(
   ai: GoogleGenAI,
-  items: { id: string; daysInStock: number | null; daysOnHand: number | null }[]
+  items: GeminiBatchItem[]
 ): Promise<Map<string, Classification>> {
   const response = await ai.models.generateContent({
     model: "gemini-flash-latest",
