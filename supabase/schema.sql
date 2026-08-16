@@ -1,40 +1,31 @@
 -- AI Inventory Management System
--- MVP schema. No auth/login (per PRD), so RLS policies are intentionally
--- open to the anon key — this is a single-tenant tool with no user accounts.
+-- Requires Supabase Auth (email/password) enabled, with exactly one user
+-- account created manually in the Supabase dashboard (Authentication ->
+-- Users -> Add user). There is no public sign-up flow in the app.
 
 create extension if not exists "pgcrypto";
 
-create table if not exists uploads (
-  id uuid primary key default gen_random_uuid(),
-  filename text not null,
-  row_count integer not null default 0,
-  created_at timestamptz not null default now()
-);
+-- Superseded by the single `inventory` table below (pre-auth iteration).
+drop table if exists inventory_items;
+drop table if exists uploads;
 
-create table if not exists inventory_items (
+create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
-  upload_id uuid not null references uploads(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  sku_code text not null,
   product_name text not null,
-  sku text,
   quantity_on_hand numeric not null default 0,
   cost_price numeric not null default 0,
   last_sale_date date,
   avg_daily_sales numeric not null default 0,
-  days_in_stock integer,
-  days_on_hand numeric,
-  value numeric generated always as (quantity_on_hand * cost_price) stored,
-  classification text check (classification in ('Sell off', 'Watch', 'Keep & Reorder')),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, sku_code)
 );
 
-create index if not exists inventory_items_upload_id_idx on inventory_items (upload_id);
+create index if not exists inventory_user_id_idx on inventory (user_id);
 
-alter table uploads enable row level security;
-alter table inventory_items enable row level security;
+alter table inventory enable row level security;
 
--- No login for MVP: allow the anon key to read/write freely.
-create policy "anon full access uploads" on uploads
-  for all using (true) with check (true);
-
-create policy "anon full access inventory_items" on inventory_items
-  for all using (true) with check (true);
+create policy "Users manage their own inventory" on inventory
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
