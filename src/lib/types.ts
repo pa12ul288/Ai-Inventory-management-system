@@ -1,3 +1,5 @@
+import type { ExpiryStatus } from "./expiry";
+
 export type Classification = "Sell off" | "Watch" | "Keep & Reorder";
 
 export interface RawInventoryRow {
@@ -7,6 +9,7 @@ export interface RawInventoryRow {
   costPrice: number;
   lastSaleDate: string | null;
   avgDailySales: number;
+  expiryDate: string | null;
 }
 
 export interface IdentifiedRow extends RawInventoryRow {
@@ -19,6 +22,8 @@ export interface ClassifiedInventoryRow extends RawInventoryRow {
   daysInStock: number | null;
   daysOnHand: number | null;
   classification: Classification;
+  daysToExpiry: number | null;
+  expiryStatus: ExpiryStatus;
 }
 
 export interface DashboardKpis {
@@ -26,4 +31,9 @@ export interface DashboardKpis {
   slowDeadStockValue: number;
   productsToReorder: number;
   capitalToFreeUp: number;
+  expiringSoonCount: number;
+  expiringSoonValue: number;
+  expiredCount: number;
+  expiredValue: number;
+  cashNeededToReorder: number;
 }

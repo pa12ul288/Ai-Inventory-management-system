@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DashboardIcon, InventoryIcon, SellOffIcon, ReorderIcon, ReportsIcon } from "./icons";
+import { DashboardIcon, InventoryIcon, SellOffIcon, ReorderIcon, ExpiryIcon, ReportsIcon } from "./icons";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: DashboardIcon },
   { label: "Inventory", href: "/inventory", icon: InventoryIcon },
   { label: "Sell Off", href: "/sell-off", icon: SellOffIcon },
   { label: "Reorder", href: "/reorder", icon: ReorderIcon },
+  { label: "Expiry Watch", href: "/expiry", icon: ExpiryIcon },
   { label: "Reports", href: "/reports", icon: ReportsIcon },
 ];
 

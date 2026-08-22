@@ -57,6 +57,16 @@ const HEADER_ALIASES: Record<keyof RawInventoryRow, string[]> = {
     "sales velocity",
     "sales per day",
   ],
+  expiryDate: [
+    "expiry date",
+    "expiry",
+    "exp date",
+    "exp",
+    "expiration date",
+    "batch expiry",
+    "expiry_date",
+    "best before",
+  ],
 };
 
 function normalizeHeader(header: string): string {
@@ -131,6 +141,7 @@ function rowsFromRecords(records: Record<string, unknown>[]): {
     costPrice: headerMap.costPrice ? toNumber(record[headerMap.costPrice]) : 0,
     lastSaleDate: headerMap.lastSaleDate ? toDateString(record[headerMap.lastSaleDate]) : null,
     avgDailySales: headerMap.avgDailySales ? toNumber(record[headerMap.avgDailySales]) : 0,
+    expiryDate: headerMap.expiryDate ? toDateString(record[headerMap.expiryDate]) : null,
   }));
 
   return { rows: rows.filter((r) => r.productName), unmapped };

@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase, supabaseConfigured } from "./supabaseClient";
 import { fetchInventory, upsertInventory } from "./inventoryStore";
 import { computeKpis } from "./kpis";
+import { computeExpiryInfo } from "./expiry";
 import type { ClassifiedInventoryRow, Classification, DashboardKpis, IdentifiedRow, RawInventoryRow } from "./types";
 
 async function classifyRows(identified: IdentifiedRow[]): Promise<ClassifiedInventoryRow[]> {
@@ -27,12 +28,15 @@ async function classifyRows(identified: IdentifiedRow[]): Promise<ClassifiedInve
 
   return identified.map((row) => {
     const result = resultById.get(row.id);
+    const { daysToExpiry, expiryStatus } = computeExpiryInfo(row.expiryDate);
     return {
       ...row,
       value: row.quantityOnHand * row.costPrice,
       daysInStock: result?.daysInStock ?? null,
       daysOnHand: result?.daysOnHand ?? null,
       classification: result?.classification ?? "Watch",
+      daysToExpiry,
+      expiryStatus,
     };
   });
 }

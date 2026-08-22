@@ -10,6 +10,8 @@ export function downloadInventoryCsv(rows: ClassifiedInventoryRow[], filename = 
       "Value (₹)": r.value.toFixed(2),
       "Days in Stock": r.daysInStock ?? "",
       "AI Recommendation": r.classification,
+      "Expiry Date": r.expiryDate ?? "",
+      "Expiry Status": r.expiryStatus,
     }))
   );
 

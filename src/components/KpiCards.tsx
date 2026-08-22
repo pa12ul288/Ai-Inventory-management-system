@@ -1,6 +1,6 @@
 import type { DashboardKpis } from "@/lib/types";
 import { formatInr } from "@/lib/format";
-import { WalletIcon, AlertTriangleIcon, CartIcon, TrendingDownIcon } from "./icons";
+import { WalletIcon, AlertTriangleIcon, CartIcon, TrendingDownIcon, ExpiryIcon } from "./icons";
 
 export default function KpiCards({ kpis }: { kpis: DashboardKpis }) {
   const cards = [
@@ -32,10 +32,24 @@ export default function KpiCards({ kpis }: { kpis: DashboardKpis }) {
       icon: TrendingDownIcon,
       iconBg: "bg-teal-50 text-teal-600",
     },
+    {
+      label: "Cash Needed to Reorder",
+      value: formatInr(kpis.cashNeededToReorder),
+      accent: "text-slate-900",
+      icon: CartIcon,
+      iconBg: "bg-slate-100 text-slate-600",
+    },
+    {
+      label: "Expiring Soon (≤60 days)",
+      value: `${kpis.expiringSoonCount + kpis.expiredCount} · ${formatInr(kpis.expiringSoonValue + kpis.expiredValue)}`,
+      accent: kpis.expiredValue > 0 ? "text-red-600" : "text-amber-600",
+      icon: ExpiryIcon,
+      iconBg: kpis.expiredValue > 0 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => (
         <div
           key={card.label}

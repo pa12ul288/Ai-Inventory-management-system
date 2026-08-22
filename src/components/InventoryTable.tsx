@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { ClassifiedInventoryRow, Classification } from "@/lib/types";
 import { formatInr } from "@/lib/format";
 import ClassificationBadge from "./ClassificationBadge";
+import ExpiryBadge from "./ExpiryBadge";
 import { SearchIcon, FilterIcon } from "./icons";
 
 const FILTERS: { label: string; value: Classification | "All" }[] = [
@@ -69,6 +70,7 @@ export default function InventoryTable({ rows }: { rows: ClassifiedInventoryRow[
               <th className="px-3 py-2 text-right font-medium text-slate-600">Value (₹)</th>
               <th className="px-3 py-2 text-right font-medium text-slate-600">Days in Stock</th>
               <th className="px-3 py-2 text-left font-medium text-slate-600">AI Recommendation</th>
+              <th className="px-3 py-2 text-left font-medium text-slate-600">Expiry</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -81,11 +83,14 @@ export default function InventoryTable({ rows }: { rows: ClassifiedInventoryRow[
                 <td className="px-3 py-2">
                   <ClassificationBadge classification={r.classification} />
                 </td>
+                <td className="px-3 py-2">
+                  <ExpiryBadge status={r.expiryStatus} daysToExpiry={r.daysToExpiry} />
+                </td>
               </tr>
             ))}
             {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-sm text-slate-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">
                   No products match your search.
                 </td>
               </tr>

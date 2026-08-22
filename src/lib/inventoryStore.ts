@@ -14,7 +14,9 @@ export async function fetchInventory(): Promise<IdentifiedRow[]> {
 
   const { data, error } = await supabase
     .from("inventory")
-    .select("id, sku_code, product_name, quantity_on_hand, cost_price, last_sale_date, avg_daily_sales")
+    .select(
+      "id, sku_code, product_name, quantity_on_hand, cost_price, last_sale_date, avg_daily_sales, expiry_date"
+    )
     .order("product_name", { ascending: true });
 
   if (error) {
@@ -30,6 +32,7 @@ export async function fetchInventory(): Promise<IdentifiedRow[]> {
     costPrice: Number(r.cost_price),
     lastSaleDate: r.last_sale_date,
     avgDailySales: Number(r.avg_daily_sales),
+    expiryDate: r.expiry_date,
   }));
 }
 
@@ -52,6 +55,7 @@ export async function upsertInventory(rows: RawInventoryRow[]): Promise<{ error:
     cost_price: row.costPrice,
     last_sale_date: row.lastSaleDate,
     avg_daily_sales: row.avgDailySales,
+    expiry_date: row.expiryDate,
     updated_at: nowIso,
   }));
 

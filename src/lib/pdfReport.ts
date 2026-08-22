@@ -21,6 +21,11 @@ export function downloadPdfReport(rows: ClassifiedInventoryRow[], kpis: Dashboar
       ["Slow / dead stock value", formatInr(kpis.slowDeadStockValue)],
       ["Products to reorder", String(kpis.productsToReorder)],
       ["Capital you can free up", formatInr(kpis.capitalToFreeUp)],
+      ["Cash needed to reorder", formatInr(kpis.cashNeededToReorder)],
+      [
+        "Expired / expiring soon (≤60 days)",
+        `${kpis.expiredCount + kpis.expiringSoonCount} products, ${formatInr(kpis.expiredValue + kpis.expiringSoonValue)} at risk`,
+      ],
     ],
     theme: "grid",
     headStyles: { fillColor: [15, 118, 110] },
@@ -53,6 +58,29 @@ export function downloadPdfReport(rows: ClassifiedInventoryRow[], kpis: Dashboar
     theme: "striped",
     headStyles: { fillColor: [21, 128, 61] },
   });
+
+  const expiring = rows
+    .filter((r) => r.expiryStatus === "expired" || r.expiryStatus === "expiring-soon")
+    .sort((a, b) => (a.daysToExpiry ?? Infinity) - (b.daysToExpiry ?? Infinity));
+
+  if (expiring.length > 0) {
+    const afterReorderY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+    doc.setFontSize(12);
+    doc.text("Expiry Watch — expired or expiring within 60 days", 14, afterReorderY);
+    autoTable(doc, {
+      startY: afterReorderY + 4,
+      head: [["Product", "Expiry Date", "Status", "Value at Risk"]],
+      body: expiring.map((r) => [
+        r.productName,
+        r.expiryDate ?? "—",
+        r.expiryStatus === "expired" ? "Expired" : "Expiring soon",
+        formatInr(r.value),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [180, 83, 9] },
+    });
+  }
 
   doc.save(`adwce-inventory-report-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

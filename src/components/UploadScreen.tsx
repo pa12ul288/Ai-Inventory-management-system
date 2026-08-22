@@ -94,7 +94,8 @@ export default function UploadScreen({ onAnalyze, analyzing, errorMessage }: Upl
           </p>
           <p className="mt-2 text-sm text-slate-400">Accepts .csv, .xlsx, or .xls</p>
           <p className="mt-4 text-xs text-slate-400">
-            Expected columns: Product Name, Quantity On Hand, Cost Price, Last Sale Date, Avg Daily Sales
+            Expected columns: Product Name, Quantity On Hand, Cost Price, Last Sale Date, Avg Daily Sales,
+            Expiry Date (optional but recommended for medical stock)
           </p>
         </div>
       )}
@@ -140,6 +141,7 @@ export default function UploadScreen({ onAnalyze, analyzing, errorMessage }: Upl
                   <th className="px-3 py-2 text-right font-medium text-slate-600">Qty</th>
                   <th className="px-3 py-2 text-right font-medium text-slate-600">Cost Price</th>
                   <th className="px-3 py-2 text-left font-medium text-slate-600">Last Sale</th>
+                  <th className="px-3 py-2 text-left font-medium text-slate-600">Expiry</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -150,6 +152,7 @@ export default function UploadScreen({ onAnalyze, analyzing, errorMessage }: Upl
                     <td className="px-3 py-2 text-right text-slate-800">{r.quantityOnHand}</td>
                     <td className="px-3 py-2 text-right text-slate-800">{formatInr(r.costPrice)}</td>
                     <td className="px-3 py-2 text-slate-500">{r.lastSaleDate ?? "—"}</td>
+                    <td className="px-3 py-2 text-slate-500">{r.expiryDate ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

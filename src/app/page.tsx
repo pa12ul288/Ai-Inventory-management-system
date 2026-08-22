@@ -5,6 +5,7 @@ import { useAppData } from "@/lib/AppDataContext";
 import KpiCards from "@/components/KpiCards";
 import SellOffList from "@/components/SellOffList";
 import KeepReorderList from "@/components/KeepReorderList";
+import ExpiryWatchList from "@/components/ExpiryWatchList";
 
 export default function DashboardPage() {
   const { filename, rows, kpis } = useAppData();
@@ -28,9 +29,10 @@ export default function DashboardPage() {
         <KpiCards kpis={kpis} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <SellOffList rows={rows} limit={5} />
         <KeepReorderList rows={rows} limit={5} />
+        <ExpiryWatchList rows={rows} limit={5} />
       </div>
     </div>
   );

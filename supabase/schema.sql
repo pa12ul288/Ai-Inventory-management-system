@@ -18,10 +18,15 @@ create table if not exists inventory (
   cost_price numeric not null default 0,
   last_sale_date date,
   avg_daily_sales numeric not null default 0,
+  expiry_date date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, sku_code)
 );
+
+-- Safe to re-run: adds the column to an existing table from before expiry
+-- tracking was added, and is a no-op on a table created fresh from above.
+alter table inventory add column if not exists expiry_date date;
 
 create index if not exists inventory_user_id_idx on inventory (user_id);
 
