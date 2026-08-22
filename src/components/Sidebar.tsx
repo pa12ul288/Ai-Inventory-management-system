@@ -1,14 +1,20 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { DashboardIcon, InventoryIcon, SellOffIcon, ReorderIcon, ReportsIcon } from "./icons";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", href: "#dashboard-top", icon: DashboardIcon },
-  { label: "Inventory", href: "#inventory", icon: InventoryIcon },
-  { label: "Sell Off", href: "#sell-off", icon: SellOffIcon },
-  { label: "Reorder", href: "#reorder", icon: ReorderIcon },
-  { label: "Reports", href: "#reports", icon: ReportsIcon },
+  { label: "Dashboard", href: "/", icon: DashboardIcon },
+  { label: "Inventory", href: "/inventory", icon: InventoryIcon },
+  { label: "Sell Off", href: "/sell-off", icon: SellOffIcon },
+  { label: "Reorder", href: "/reorder", icon: ReorderIcon },
+  { label: "Reports", href: "/reports", icon: ReportsIcon },
 ];
 
-export default function Sidebar({ active = "Dashboard" }: { active?: string }) {
+export default function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
       <div className="flex h-16 items-center gap-2 px-6">
@@ -20,10 +26,10 @@ export default function Sidebar({ active = "Dashboard" }: { active?: string }) {
       <nav className="flex-1 px-3 py-4">
         <ul className="flex flex-col gap-1">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
-            const isActive = label === active;
+            const isActive = pathname === href;
             return (
               <li key={label}>
-                <a
+                <Link
                   href={href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
@@ -33,7 +39,7 @@ export default function Sidebar({ active = "Dashboard" }: { active?: string }) {
                 >
                   <Icon className="h-5 w-5 shrink-0" />
                   {label}
-                </a>
+                </Link>
               </li>
             );
           })}
