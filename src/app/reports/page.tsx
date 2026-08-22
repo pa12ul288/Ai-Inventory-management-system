@@ -4,6 +4,7 @@ import { useAppData } from "@/lib/AppDataContext";
 import { downloadPdfReport } from "@/lib/pdfReport";
 import { downloadInventoryCsv } from "@/lib/csvExport";
 import { formatInr } from "@/lib/format";
+import PageStats from "@/components/PageStats";
 
 export default function ReportsPage() {
   const { rows, kpis } = useAppData();
@@ -15,12 +16,14 @@ export default function ReportsPage() {
         Download your current inventory recommendations as a PDF summary or a raw CSV export.
       </p>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-4">
-        <Stat label="Total Value" value={formatInr(kpis.totalInventoryValue)} />
-        <Stat label="Slow / Dead Stock" value={formatInr(kpis.slowDeadStockValue)} accent="text-red-600" />
-        <Stat label="To Reorder" value={String(kpis.productsToReorder)} accent="text-emerald-600" />
-        <Stat label="Capital Freed" value={formatInr(kpis.capitalToFreeUp)} accent="text-teal-600" />
-      </div>
+      <PageStats
+        items={[
+          { label: "Total Value", value: formatInr(kpis.totalInventoryValue) },
+          { label: "Slow / Dead Stock", value: formatInr(kpis.slowDeadStockValue), accent: "text-red-600" },
+          { label: "To Reorder", value: String(kpis.productsToReorder), accent: "text-emerald-600" },
+          { label: "Capital Freed", value: formatInr(kpis.capitalToFreeUp), accent: "text-teal-600" },
+        ]}
+      />
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row">
         <button
@@ -36,15 +39,6 @@ export default function ReportsPage() {
           Export Table (CSV)
         </button>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, accent = "text-slate-900" }: { label: string; value: string; accent?: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-semibold ${accent}`}>{value}</p>
     </div>
   );
 }
