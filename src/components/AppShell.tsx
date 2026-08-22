@@ -1,21 +1,11 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import Header from "./Header";
 
-export default function AppShell({
-  onLogout,
-  children,
-}: {
-  onLogout?: () => void;
-  children: ReactNode;
-}) {
+export default function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen w-full bg-white">
+    <div className="flex min-h-screen w-full bg-slate-50">
       <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
-        <Header onLogout={onLogout} />
-        <main className="flex flex-1 flex-col bg-white">{children}</main>
-      </div>
+      <main className="flex min-h-screen flex-1 flex-col bg-slate-50">{children}</main>
     </div>
   );
 }

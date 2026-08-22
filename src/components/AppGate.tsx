@@ -9,7 +9,7 @@ import { useAppData, supabaseConfigured } from "@/lib/AppDataContext";
 
 export default function AppGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { session, loadingInventory, analyzing, error, hasInventory, handleAnalyze, handleLogout } = useAppData();
+  const { session, loadingInventory, analyzing, error, hasInventory, handleAnalyze } = useAppData();
 
   if (!supabaseConfigured) {
     return (
@@ -32,7 +32,7 @@ export default function AppGate({ children }: { children: ReactNode }) {
 
   if (loadingInventory) {
     return (
-      <AppShell onLogout={handleLogout}>
+      <AppShell>
         <div className="flex flex-1 items-center justify-center text-slate-400">Loading your inventory…</div>
       </AppShell>
     );
@@ -42,11 +42,11 @@ export default function AppGate({ children }: { children: ReactNode }) {
   // requested, get the user into the upload flow.
   if (!hasInventory && pathname !== "/upload") {
     return (
-      <AppShell onLogout={handleLogout}>
+      <AppShell>
         <UploadScreen onAnalyze={handleAnalyze} analyzing={analyzing} errorMessage={error} />
       </AppShell>
     );
   }
 
-  return <AppShell onLogout={handleLogout}>{children}</AppShell>;
+  return <AppShell>{children}</AppShell>;
 }
