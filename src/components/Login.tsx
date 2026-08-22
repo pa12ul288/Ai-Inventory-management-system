@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-type Mode = "signin" | "forgot-request" | "forgot-verify";
+type Mode = "signin" | "signup" | "forgot-request" | "forgot-verify";
 
 export default function Login() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -29,6 +29,37 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) setError(error.message);
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    resetMessages();
+
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    if (data.session) {
+      // Signed in immediately — the app's auth listener shows the dashboard.
+      return;
+    }
+
+    setInfo("Account created. Check your email for a confirmation link, then log in.");
+    setMode("signin");
   }
 
   async function handleRequestOtp(e: React.FormEvent) {
@@ -103,16 +134,46 @@ export default function Login() {
             <Field label="Email" type="email" value={email} onChange={setEmail} autoFocus />
             <Field label="Password" type="password" value={password} onChange={setPassword} />
             <SubmitButton loading={loading} label="Log In" loadingLabel="Signing in…" />
-            <button
-              type="button"
-              onClick={() => {
-                resetMessages();
-                setMode("forgot-request");
-              }}
-              className="text-sm text-teal-700 underline hover:text-teal-800"
-            >
-              Forgot password?
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  resetMessages();
+                  setMode("forgot-request");
+                }}
+                className="text-sm text-teal-700 underline hover:text-teal-800"
+              >
+                Forgot password?
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetMessages();
+                  setMode("signup");
+                }}
+                className="text-sm text-slate-500 underline hover:text-slate-700"
+              >
+                Create account
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mode === "signup" && (
+          <form onSubmit={handleSignUp} className="flex flex-col gap-4">
+            <p className="text-sm text-slate-500">
+              Set the email and password you&apos;ll use to sign in to this dashboard.
+            </p>
+            <Field label="Email" type="email" value={email} onChange={setEmail} autoFocus />
+            <Field label="Password" type="password" value={password} onChange={setPassword} />
+            <Field
+              label="Confirm password"
+              type="password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+            />
+            <SubmitButton loading={loading} label="Create Account" loadingLabel="Creating…" />
+            <BackButton onClick={() => { resetMessages(); setMode("signin"); }} />
           </form>
         )}
 
