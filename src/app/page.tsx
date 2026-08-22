@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useAppData } from "@/lib/AppDataContext";
-import KpiCards from "@/components/KpiCards";
 import SellOffList from "@/components/SellOffList";
 import KeepReorderList from "@/components/KeepReorderList";
 import ExpiryWatchList from "@/components/ExpiryWatchList";
 import InventoryBreakdownChart from "@/components/InventoryBreakdownChart";
+import PageStats from "@/components/PageStats";
+import { formatInr } from "@/lib/format";
 
 function greetingName(email: string | undefined) {
   if (!email) return "there";
@@ -36,9 +37,14 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <div className="mb-6">
-        <KpiCards kpis={kpis} />
-      </div>
+      <PageStats
+        items={[
+          { label: "Total Inventory Value", value: formatInr(kpis.totalInventoryValue) },
+          { label: "Slow / Dead Stock", value: formatInr(kpis.slowDeadStockValue), accent: "text-red-600" },
+          { label: "Products to Reorder", value: String(kpis.productsToReorder), accent: "text-emerald-600" },
+          { label: "Capital You Can Free Up", value: formatInr(kpis.capitalToFreeUp), accent: "text-teal-600" },
+        ]}
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
