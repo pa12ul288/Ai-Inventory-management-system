@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAppData } from "@/lib/AppDataContext";
 import PageStats from "@/components/PageStats";
+import InventoryTable from "@/components/InventoryTable";
 import { formatInr } from "@/lib/format";
 import type { FilterValue } from "@/components/InventoryTable";
 
@@ -15,16 +16,13 @@ function greetingName(email: string | undefined) {
 interface AttentionItem {
   label: string;
   count: number;
-  value?: number;
   filter: FilterValue;
-  tone: "red" | "amber" | "indigo" | "slate";
+  tone: "red" | "amber";
 }
 
-const TONE_STYLES: Record<AttentionItem["tone"], { dot: string; border: string }> = {
-  red: { dot: "bg-red-500", border: "border-l-red-500" },
-  amber: { dot: "bg-amber-500", border: "border-l-amber-500" },
-  indigo: { dot: "bg-indigo-500", border: "border-l-indigo-500" },
-  slate: { dot: "bg-slate-400", border: "border-l-slate-400" },
+const TONE_STYLES: Record<AttentionItem["tone"], string> = {
+  red: "border-red-200 bg-red-50 text-red-700",
+  amber: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 export default function DashboardPage() {
@@ -32,27 +30,9 @@ export default function DashboardPage() {
 
   const allItems: AttentionItem[] = [
     { label: "Out of stock", count: kpis.outOfStockCount, filter: "out_of_stock", tone: "red" },
-    { label: "Expired batches", count: kpis.expiredCount, value: kpis.expiredValue, filter: "expired", tone: "red" },
+    { label: "Expired", count: kpis.expiredCount, filter: "expired", tone: "red" },
     { label: "Low stock", count: kpis.lowStockCount, filter: "low_stock", tone: "amber" },
-    {
-      label: "Expiring within 90 days",
-      count: kpis.nearExpiryCount,
-      value: kpis.nearExpiryValue,
-      filter: "expiring",
-      tone: "amber",
-    },
-    {
-      label: "Overstock",
-      count: records.filter((r) => r.stockStatus === "overstock").length,
-      filter: "overstock",
-      tone: "indigo",
-    },
-    {
-      label: "Slow moving",
-      count: records.filter((r) => r.stockStatus === "slow_moving").length,
-      filter: "slow_moving",
-      tone: "slate",
-    },
+    { label: "Expiring within 90 days", count: kpis.nearExpiryCount, filter: "expiring", tone: "amber" },
   ];
   const items = allItems.filter((item) => item.count > 0);
 
@@ -61,11 +41,11 @@ export default function DashboardPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Welcome back, {greetingName(session?.user?.email)}</h1>
-          <p className="text-sm text-slate-500">Here&apos;s what needs your attention today.</p>
+          <p className="text-sm text-slate-500">Here&apos;s how your inventory looks today.</p>
         </div>
         <Link
           href="/inventory/add"
-          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
         >
           Add Inventory
         </Link>
@@ -73,49 +53,28 @@ export default function DashboardPage() {
 
       <PageStats
         items={[
-          { label: "Total Inventory Value", value: formatInr(kpis.totalInventoryValue) },
-          { label: "Total SKUs", value: String(kpis.totalSkus) },
-          { label: "Available Stock (units)", value: String(kpis.availableStock) },
+          { label: "Total Inventory Value", value: formatInr(kpis.totalInventoryValue), subtitle: "All warehouses" },
+          { label: "Low Stock Items", value: String(kpis.lowStockCount), accent: "text-amber-600", subtitle: "At/below reorder point" },
+          { label: "Out of Stock", value: String(kpis.outOfStockCount), accent: "text-red-600", subtitle: "Needs restock" },
+          { label: "Near-Expiry Value", value: formatInr(kpis.nearExpiryValue), accent: "text-amber-600", subtitle: "Within 90 days" },
         ]}
       />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 font-semibold text-slate-900">Needs Attention</h2>
+      {items.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {items.map((item) => (
+            <Link
+              key={item.label}
+              href={`/inventory?filter=${item.filter}`}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 ${TONE_STYLES[item.tone]}`}
+            >
+              {item.count} {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
 
-        {items.length === 0 ? (
-          <p className="text-sm text-slate-400">Nothing needs attention right now — inventory looks healthy.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {items.map((item) => {
-              const tone = TONE_STYLES[item.tone];
-              return (
-                <div
-                  key={item.label}
-                  className={`flex items-center justify-between gap-4 rounded-lg border-l-4 bg-slate-50 px-4 py-3 ${tone.border}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} />
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">
-                        {item.count} {item.label}
-                      </p>
-                      {item.value !== undefined && (
-                        <p className="text-xs text-slate-500">{formatInr(item.value)} at risk</p>
-                      )}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/inventory?filter=${item.filter}`}
-                    className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    View
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <InventoryTable records={records} />
     </div>
   );
 }

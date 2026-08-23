@@ -107,12 +107,30 @@ inventory counts:
 ## What's built vs. deferred
 
 **Built:** auth, the products/batches/warehouses/suppliers/movements data
-model, reconciled Excel/CSV import, manual entry, a batch-level searchable/
-filterable/sortable Inventory table with bulk status actions, a Dashboard
-that surfaces only actionable "Needs Attention" items (not decorative KPI
-cards), and Reports (valuation/stockout/expiry, PDF + CSV).
+model, reconciled Excel/CSV import (including Tally exports), manual entry, a
+batch-level searchable/filterable/sortable/paginated Inventory table with
+bulk status actions, a Dashboard (stat row + a compact "needs attention"
+chip row + the full inventory table), a Settings page (account + read-only
+Warehouses/Suppliers lists), and Reports (valuation/stockout/expiry, PDF +
+CSV) — all real functionality, nothing decorative.
 
 **Deferred** (the data layer supports these, but there's no dedicated UI yet):
-a Product detail page, a Stock Movement ledger page, a Warehouses management
-page, Purchase Orders/Returns, and Alerts as a persisted/dismissible entity
-rather than a computed dashboard section.
+a Product detail page, a Stock Movement ledger page, a proper Warehouses
+management page (create/edit, not just the read-only list in Settings),
+Purchase Orders/Returns, and Alerts as a persisted/dismissible entity rather
+than the computed chip row on the Dashboard.
+
+## Visual design note
+
+The shell (sidebar, top header with search, table styling, stat tiles) was
+redesigned to match a specific reference layout requested — white flat
+sidebar with a right-border separator, centered search bar in the header,
+flat un-shadowed cards, light-grey row hover. A few things in that reference
+described the *pre-rearchitecture* version of this app (an AI-assigned
+Sell Off/Watch/Keep & Reorder label, separate Sell Off/Reorder pages, Reports
+as an empty placeholder) — those were deliberately not reintroduced, since
+"keep existing functionality/data/logic" was the explicit overriding
+instruction. The color-coded status column is the real deterministic Stock
+Status instead; Sell Off/Reorder are still reachable as `/inventory?filter=`
+views (linked from the Dashboard's chip row); Reports stayed fully
+functional.

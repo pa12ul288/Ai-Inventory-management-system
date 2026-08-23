@@ -38,9 +38,10 @@ export default function AppGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // First-time experience: nothing added yet. Let /inventory/add itself
-  // render normally; every other route shows a prompt to get started.
-  if (!hasInventory && pathname !== "/inventory/add") {
+  // First-time experience: nothing added yet. Let /inventory/add and
+  // /settings render normally; every other route shows a prompt to get
+  // started.
+  if (!hasInventory && pathname !== "/inventory/add" && pathname !== "/settings") {
     return (
       <AppShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
@@ -50,7 +51,7 @@ export default function AppGate({ children }: { children: ReactNode }) {
           </p>
           <Link
             href="/inventory/add"
-            className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
+            className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-teal-700"
           >
             Add Inventory
           </Link>

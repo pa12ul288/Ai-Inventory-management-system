@@ -23,21 +23,25 @@ const FILTERS: { label: string; value: FilterValue }[] = [
 ];
 
 type SortKey = "product" | "available" | "expiry" | "value";
+const PAGE_SIZE = 15;
 
 export default function InventoryTable({
   records,
   initialFilter = "All",
+  initialSearch = "",
 }: {
   records: InventoryRecord[];
   initialFilter?: FilterValue;
+  initialSearch?: string;
 }) {
   const { handleUpdateBatchStatuses } = useAppData();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
   const [filter, setFilter] = useState<FilterValue>(initialFilter);
   const [sortKey, setSortKey] = useState<SortKey>("expiry");
   const [sortAsc, setSortAsc] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applyingStatus, setApplyingStatus] = useState(false);
+  const [page, setPage] = useState(1);
 
   const filteredRecords = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -46,7 +50,8 @@ export default function InventoryTable({
         q === "" ||
         r.productName.toLowerCase().includes(q) ||
         r.sku.toLowerCase().includes(q) ||
-        r.batchNumber.toLowerCase().includes(q);
+        r.batchNumber.toLowerCase().includes(q) ||
+        r.supplierName?.toLowerCase().includes(q);
       if (!matchesQuery) return false;
 
       if (filter === "All") return true;
@@ -67,6 +72,9 @@ export default function InventoryTable({
     return result;
   }, [records, query, filter, sortKey, sortAsc]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
+  const pageRecords = filteredRecords.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((a) => !a);
     else {
@@ -85,8 +93,8 @@ export default function InventoryTable({
   }
 
   function toggleSelectAll() {
-    if (selected.size === filteredRecords.length) setSelected(new Set());
-    else setSelected(new Set(filteredRecords.map((r) => r.batchId)));
+    if (selected.size === pageRecords.length) setSelected(new Set());
+    else setSelected(new Set(pageRecords.map((r) => r.batchId)));
   }
 
   async function applyBulkStatus(status: BatchStatus) {
@@ -102,7 +110,7 @@ export default function InventoryTable({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold text-slate-900">Inventory ({filteredRecords.length})</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +119,10 @@ export default function InventoryTable({
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
               placeholder="Search product, SKU, or batch…"
               className="w-64 rounded-lg border border-slate-300 bg-white py-1.5 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
@@ -121,7 +132,10 @@ export default function InventoryTable({
             {FILTERS.map((f) => (
               <button
                 key={f.value}
-                onClick={() => setFilter(f.value)}
+                onClick={() => {
+                  setFilter(f.value);
+                  setPage(1);
+                }}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   filter === f.value ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-slate-100"
                 }`}
@@ -134,7 +148,7 @@ export default function InventoryTable({
             onClick={exportSelectedOrAll}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
           >
-            Export {selected.size > 0 ? `Selected (${selected.size})` : "All"}
+            Download {selected.size > 0 ? `Selected (${selected.size})` : "All"}
           </button>
         </div>
       </div>
@@ -149,7 +163,7 @@ export default function InventoryTable({
               key={status}
               disabled={applyingStatus}
               onClick={() => applyBulkStatus(status)}
-              className="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-teal-700 shadow-sm hover:bg-teal-100 disabled:opacity-50"
+              className="rounded-md border border-teal-200 bg-white px-2.5 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100 disabled:opacity-50"
             >
               {status.replace("_", " ")}
             </button>
@@ -157,32 +171,32 @@ export default function InventoryTable({
         </div>
       )}
 
-      <div className="max-h-[36rem] overflow-auto rounded-lg border border-slate-100">
+      <div className="overflow-auto rounded-lg border border-slate-200">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="sticky top-0 z-10 bg-slate-50">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="w-10 px-3 py-2">
+              <th className="w-10 px-3 py-2.5">
                 <input
                   type="checkbox"
-                  checked={filteredRecords.length > 0 && selected.size === filteredRecords.length}
+                  checked={pageRecords.length > 0 && selected.size === pageRecords.length}
                   onChange={toggleSelectAll}
                   className="rounded border-slate-300"
                 />
               </th>
               <SortableHeader label="Product" active={sortKey === "product"} asc={sortAsc} onClick={() => toggleSort("product")} />
-              <th className="px-3 py-2 text-left font-medium text-slate-600">Batch</th>
-              <th className="px-3 py-2 text-left font-medium text-slate-600">Warehouse</th>
+              <th className="px-3 py-2.5 text-left font-medium text-slate-600">Batch</th>
+              <th className="px-3 py-2.5 text-left font-medium text-slate-600">Warehouse</th>
               <SortableHeader label="Available" align="right" active={sortKey === "available"} asc={sortAsc} onClick={() => toggleSort("available")} />
               <SortableHeader label="Expiry" active={sortKey === "expiry"} asc={sortAsc} onClick={() => toggleSort("expiry")} />
               <SortableHeader label="Value (₹)" align="right" active={sortKey === "value"} asc={sortAsc} onClick={() => toggleSort("value")} />
-              <th className="px-3 py-2 text-left font-medium text-slate-600">Stock Status</th>
-              <th className="px-3 py-2 text-left font-medium text-slate-600">Batch Status</th>
+              <th className="px-3 py-2.5 text-left font-medium text-slate-600">Status</th>
+              <th className="px-3 py-2.5 text-left font-medium text-slate-600">Batch Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredRecords.map((r, i) => (
-              <tr key={r.batchId} className={`${i % 2 === 1 ? "bg-slate-50/60" : "bg-white"} hover:bg-teal-50/60`}>
-                <td className="px-3 py-2">
+            {pageRecords.map((r) => (
+              <tr key={r.batchId} className="bg-white hover:bg-slate-50">
+                <td className="px-3 py-2.5">
                   <input
                     type="checkbox"
                     checked={selected.has(r.batchId)}
@@ -190,26 +204,26 @@ export default function InventoryTable({
                     className="rounded border-slate-300"
                   />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   <p className="font-medium text-slate-800">{r.productName}</p>
                   <p className="text-xs text-slate-400">{r.sku || "No SKU"}</p>
                 </td>
-                <td className="px-3 py-2 text-slate-600">{r.batchNumber}</td>
-                <td className="px-3 py-2 text-slate-600">{r.warehouseName}</td>
-                <td className="px-3 py-2 text-right text-slate-800">{r.availableQty}</td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5 text-slate-600">{r.batchNumber}</td>
+                <td className="px-3 py-2.5 text-slate-600">{r.warehouseName}</td>
+                <td className="px-3 py-2.5 text-right text-slate-800">{r.availableQty}</td>
+                <td className="px-3 py-2.5">
                   <ExpiryBadge status={r.expiryStatus} daysToExpiry={r.daysToExpiry} />
                 </td>
-                <td className="px-3 py-2 text-right text-slate-800">{formatInr(r.value)}</td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5 text-right text-slate-800">{formatInr(r.value)}</td>
+                <td className="px-3 py-2.5">
                   <StockStatusBadge status={r.stockStatus} />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2.5">
                   <BatchStatusBadge status={r.status} />
                 </td>
               </tr>
             ))}
-            {filteredRecords.length === 0 && (
+            {pageRecords.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-6 text-center text-sm text-slate-400">
                   No batches match your search or filter.
@@ -219,6 +233,34 @@ export default function InventoryTable({
           </tbody>
         </table>
       </div>
+
+      {filteredRecords.length > 0 && (
+        <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
+          <p>
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRecords.length)} of{" "}
+            {filteredRecords.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-slate-400">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -239,7 +281,7 @@ function SortableHeader({
   return (
     <th
       onClick={onClick}
-      className={`cursor-pointer select-none px-3 py-2 font-medium text-slate-600 hover:text-slate-900 ${
+      className={`cursor-pointer select-none px-3 py-2.5 font-medium text-slate-600 hover:text-slate-900 ${
         align === "right" ? "text-right" : "text-left"
       }`}
     >

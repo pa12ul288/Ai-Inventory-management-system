@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
+import Header from "./Header";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
+    <div className="flex min-h-screen w-full bg-white">
       <Sidebar />
-      <main className="flex min-h-screen flex-1 flex-col bg-slate-50">{children}</main>
+      <div className="flex min-h-screen flex-1 flex-col">
+        <Header />
+        <main className="flex flex-1 flex-col bg-white">{children}</main>
+      </div>
     </div>
   );
 }
