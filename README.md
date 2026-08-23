@@ -78,6 +78,20 @@ given parsed rows and a snapshot of existing products/batches, it returns a
 diff. It never touches the database itself; `commitReconciliation` in
 `src/lib/inventoryData.ts` is what actually writes the reviewed result.
 
+**Tally exports** (`.xlsx` "Stock Summary" reports) work without any manual
+setup: `Stock Item` / `Closing Balance` / `Rate` are recognized alongside the
+generic aliases. The parser also handles the quirks specific to that export
+format (`src/lib/parseFile.ts`):
+- the real header row isn't row 1 — Tally leads with a company-name and
+  report-title row first, so the parser scans the first 15 rows for one that
+  looks like a header instead of assuming row 1;
+- quantities/rates come with units glued on (`"300 Nos"`, `"2.50/Nos"`) —
+  numbers are extracted with a regex rather than a straight `parseFloat`;
+- the trailing `Grand Total` row is dropped automatically rather than being
+  imported as a fake product.
+
+Plain CSV files are unaffected — this logic only runs for `.xlsx`/`.xls`.
+
 ## Stock status and expiry
 
 Both are computed deterministically (`src/lib/stockStatus.ts`), not

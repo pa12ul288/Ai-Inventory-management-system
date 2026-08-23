@@ -28,6 +28,7 @@ const HEADER_ALIASES: Record<keyof ImportRow, string[]> = {
     "drug name",
     "particulars",
     "name",
+    "stock item", // Tally "Stock Summary" export
   ],
   sku: ["sku", "sku code", "product code", "code", "item code"],
   batchNumber: ["batch number", "batch no", "batch", "lot number", "lot no", "lot"],
@@ -44,6 +45,7 @@ const HEADER_ALIASES: Record<keyof ImportRow, string[]> = {
     "balance qty",
     "balance quantity",
     "in stock",
+    "closing balance", // Tally
   ],
   purchasePrice: [
     "purchase price",
@@ -53,7 +55,7 @@ const HEADER_ALIASES: Record<keyof ImportRow, string[]> = {
     "unit cost",
     "price",
     "purchase rate",
-    "rate",
+    "rate", // Tally
   ],
   manufacturingDate: ["manufacturing date", "mfg date", "mfg", "manufacture date", "production date"],
   expiryDate: [
@@ -69,6 +71,15 @@ const HEADER_ALIASES: Record<keyof ImportRow, string[]> = {
   supplierName: ["supplier", "supplier name", "vendor", "vendor name", "manufacturer"],
   category: ["category", "product category", "type", "drug category"],
 };
+
+// Tokens that identify the real header row in a Tally "Stock Summary"
+// export, which usually leads with a company-name/report-title row (and
+// sometimes a blank row) before the actual column headers.
+const HEADER_ROW_HINTS = ["stock item", "particulars", "closing balance", "product name", "item name", "sku"];
+
+// Tally appends a "Grand Total" (or similar) row at the bottom of a stock
+// summary — it has a non-empty "product name" cell but isn't a product.
+const SUMMARY_ROW_NAMES = new Set(["grand total", "total", "closing stock", "opening stock"]);
 
 function normalizeHeader(header: string): string {
   return header
@@ -100,12 +111,13 @@ export function autoDetectHeaderMap(headers: string[]): HeaderMap {
   return map;
 }
 
+// Pulls the leading numeric token out of a value, ignoring a trailing unit
+// (Tally quantities/rates commonly look like "150 Nos" or "50.00/Nos").
 function toNumber(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (typeof value !== "string") return 0;
-  const cleaned = value.replace(/[₹,\s]/g, "");
-  const n = parseFloat(cleaned);
-  return Number.isFinite(n) ? n : 0;
+  const match = value.replace(/[₹,]/g, "").match(/-?\d+(\.\d+)?/);
+  return match ? parseFloat(match[0]) : 0;
 }
 
 function toDateString(value: unknown): string | null {
@@ -139,7 +151,7 @@ export function mapRecordsToImportRows(records: Record<string, unknown>[], heade
     category: headerMap.category ? toText(record[headerMap.category]) || null : null,
   }));
 
-  return rows.filter((r) => r.productName);
+  return rows.filter((r) => r.productName && !SUMMARY_ROW_NAMES.has(r.productName.trim().toLowerCase()));
 }
 
 export interface RawParsedFile {
@@ -164,7 +176,32 @@ export async function readFileRecords(file: File): Promise<RawParsedFile> {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
   const firstSheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[firstSheetName];
-  const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-  const headers = records.length > 0 ? Object.keys(records[0]) : [];
+
+  // Read as a raw grid first rather than assuming row 1 is the header —
+  // exports like Tally's "Stock Summary" lead with a company-name/report
+  // title row (sometimes a blank row too) before the real column headers.
+  const grid = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", blankrows: false });
+  const headerRowIndex = findHeaderRowIndex(grid);
+  const headers = (grid[headerRowIndex] ?? []).map((h) => String(h ?? "").trim()).filter(Boolean);
+
+  const records = grid.slice(headerRowIndex + 1).map((row) => {
+    const record: Record<string, unknown> = {};
+    (grid[headerRowIndex] ?? []).forEach((h, i) => {
+      const key = String(h ?? "").trim();
+      if (key) record[key] = row[i];
+    });
+    return record;
+  });
+
   return { headers, records };
+}
+
+function findHeaderRowIndex(grid: unknown[][]): number {
+  for (let i = 0; i < Math.min(grid.length, 15); i++) {
+    const cells = grid[i].map((c) => normalizeHeader(String(c ?? "")));
+    const nonEmptyCount = cells.filter((c) => c !== "").length;
+    const hasHeaderHint = cells.some((c) => HEADER_ROW_HINTS.includes(c));
+    if (hasHeaderHint && nonEmptyCount >= 2) return i;
+  }
+  return 0;
 }
