@@ -1,0 +1,7 @@
+Product Name,SKU,Batch Number,Warehouse,Quantity,Purchase Price,Manufacturing Date,Expiry Date,Supplier,Category
+Paracetamol 650mg,MED-001,B2026-01,Main Warehouse,500,2,2025-01-10,2026-07-15,MedSupply Co,Analgesic
+Amoxicillin 500mg,MED-002,B2026-02,Main Warehouse,20,8,2025-03-01,2026-09-10,PharmaDist Ltd,Antibiotic
+Insulin Glargine,MED-003,B2026-03,Cold Storage,0,300,2025-06-01,2027-06-01,BioCare Supplies,Hormone
+Surgical Gloves L,MED-004,B2026-04,Main Warehouse,2000,8,2025-02-01,2028-01-01,MedSupply Co,Consumable
+Cough Syrup 100ml,MED-005,B2026-05,Main Warehouse,60,15,2025-05-01,2026-09-05,PharmaDist Ltd,OTC
+Vitamin C Tablets,MED-006,B2026-06,Main Warehouse,150,3,2025-04-01,2026-12-01,MedSupply Co,Supplement

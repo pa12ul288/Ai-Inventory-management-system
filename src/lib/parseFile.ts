@@ -1,12 +1,24 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import type { RawInventoryRow } from "./types";
+import type { ImportRow } from "./types";
 
-const HEADER_ALIASES: Record<keyof RawInventoryRow, string[]> = {
+export const IMPORT_FIELDS: { key: keyof ImportRow; label: string; required: boolean }[] = [
+  { key: "productName", label: "Product Name", required: true },
+  { key: "sku", label: "SKU", required: false },
+  { key: "batchNumber", label: "Batch Number", required: false },
+  { key: "warehouseName", label: "Warehouse", required: false },
+  { key: "quantity", label: "Quantity", required: true },
+  { key: "purchasePrice", label: "Purchase Price", required: false },
+  { key: "manufacturingDate", label: "Manufacturing Date", required: false },
+  { key: "expiryDate", label: "Expiry Date", required: false },
+  { key: "supplierName", label: "Supplier", required: false },
+  { key: "category", label: "Category", required: false },
+];
+
+const HEADER_ALIASES: Record<keyof ImportRow, string[]> = {
   productName: [
     "product name",
     "product",
-    "sku name",
     "item name",
     "item",
     "item description",
@@ -18,11 +30,13 @@ const HEADER_ALIASES: Record<keyof RawInventoryRow, string[]> = {
     "name",
   ],
   sku: ["sku", "sku code", "product code", "code", "item code"],
-  quantityOnHand: [
-    "quantity on hand",
-    "qty on hand",
+  batchNumber: ["batch number", "batch no", "batch", "lot number", "lot no", "lot"],
+  warehouseName: ["warehouse", "warehouse name", "location", "store", "godown"],
+  quantity: [
     "quantity",
     "qty",
+    "quantity on hand",
+    "qty on hand",
     "stock quantity",
     "stock",
     "closing stock",
@@ -31,32 +45,17 @@ const HEADER_ALIASES: Record<keyof RawInventoryRow, string[]> = {
     "balance quantity",
     "in stock",
   ],
-  costPrice: [
+  purchasePrice: [
+    "purchase price",
     "cost price",
     "cost price per unit",
     "cost",
     "unit cost",
     "price",
-    "purchase price",
     "purchase rate",
     "rate",
   ],
-  lastSaleDate: [
-    "last sale date",
-    "last sold date",
-    "last sale",
-    "last sold",
-    "last movement date",
-    "last transaction date",
-  ],
-  avgDailySales: [
-    "avg daily sales",
-    "average daily sales",
-    "daily sales",
-    "avg daily sale",
-    "sales velocity",
-    "sales per day",
-  ],
+  manufacturingDate: ["manufacturing date", "mfg date", "mfg", "manufacture date", "production date"],
   expiryDate: [
     "expiry date",
     "expiry",
@@ -67,6 +66,8 @@ const HEADER_ALIASES: Record<keyof RawInventoryRow, string[]> = {
     "expiry_date",
     "best before",
   ],
+  supplierName: ["supplier", "supplier name", "vendor", "vendor name", "manufacturer"],
+  category: ["category", "product category", "type", "drug category"],
 };
 
 function normalizeHeader(header: string): string {
@@ -77,15 +78,24 @@ function normalizeHeader(header: string): string {
     .trim();
 }
 
-function buildHeaderMap(headers: string[]): Partial<Record<keyof RawInventoryRow, string>> {
-  const normalized = headers.map((h) => ({ raw: h, norm: normalizeHeader(h) }));
-  const map: Partial<Record<keyof RawInventoryRow, string>> = {};
+export type HeaderMap = Partial<Record<keyof ImportRow, string>>;
 
-  (Object.keys(HEADER_ALIASES) as (keyof RawInventoryRow)[]).forEach((field) => {
+export function autoDetectHeaderMap(headers: string[]): HeaderMap {
+  const normalized = headers.map((h) => ({ raw: h, norm: normalizeHeader(h) }));
+  const map: HeaderMap = {};
+
+  (Object.keys(HEADER_ALIASES) as (keyof ImportRow)[]).forEach((field) => {
     const aliases = HEADER_ALIASES[field];
     const match = normalized.find((h) => aliases.includes(h.norm));
     if (match) map[field] = match.raw;
   });
+
+  // No known alias matched a product-name column — distributor sheets
+  // almost always lead with the item identifier, so fall back to the
+  // first column rather than leaving it unmapped.
+  if (!map.productName && headers.length > 0) {
+    map.productName = headers[0];
+  }
 
   return map;
 }
@@ -111,45 +121,33 @@ function toDateString(value: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
-function rowsFromRecords(records: Record<string, unknown>[]): {
-  rows: RawInventoryRow[];
-  unmapped: (keyof RawInventoryRow)[];
-} {
-  if (records.length === 0) return { rows: [], unmapped: [] };
-
-  const headerMap = buildHeaderMap(Object.keys(records[0]));
-
-  const requiredFields: (keyof RawInventoryRow)[] = [
-    "productName",
-    "quantityOnHand",
-    "costPrice",
-  ];
-  const unmapped = requiredFields.filter((f) => !headerMap[f]);
-
-  // No known alias matched a product-name column — inventory sheets almost
-  // always lead with the item identifier, so fall back to the first column
-  // rather than silently dropping every row for having a blank name. Still
-  // flagged in `unmapped` above so the upload screen can warn about the guess.
-  if (!headerMap.productName) {
-    headerMap.productName = Object.keys(records[0])[0];
-  }
-
-  const rows: RawInventoryRow[] = records.map((record) => ({
-    productName: headerMap.productName ? String(record[headerMap.productName] ?? "").trim() : "",
-    sku: headerMap.sku ? String(record[headerMap.sku] ?? "").trim() : "",
-    quantityOnHand: headerMap.quantityOnHand ? toNumber(record[headerMap.quantityOnHand]) : 0,
-    costPrice: headerMap.costPrice ? toNumber(record[headerMap.costPrice]) : 0,
-    lastSaleDate: headerMap.lastSaleDate ? toDateString(record[headerMap.lastSaleDate]) : null,
-    avgDailySales: headerMap.avgDailySales ? toNumber(record[headerMap.avgDailySales]) : 0,
-    expiryDate: headerMap.expiryDate ? toDateString(record[headerMap.expiryDate]) : null,
-  }));
-
-  return { rows: rows.filter((r) => r.productName), unmapped };
+function toText(value: unknown): string {
+  return String(value ?? "").trim();
 }
 
-export async function parseInventoryFile(
-  file: File
-): Promise<{ rows: RawInventoryRow[]; unmapped: (keyof RawInventoryRow)[] }> {
+export function mapRecordsToImportRows(records: Record<string, unknown>[], headerMap: HeaderMap): ImportRow[] {
+  const rows = records.map((record) => ({
+    productName: headerMap.productName ? toText(record[headerMap.productName]) : "",
+    sku: headerMap.sku ? toText(record[headerMap.sku]) : "",
+    batchNumber: headerMap.batchNumber ? toText(record[headerMap.batchNumber]) : "",
+    warehouseName: headerMap.warehouseName ? toText(record[headerMap.warehouseName]) : "",
+    quantity: headerMap.quantity ? toNumber(record[headerMap.quantity]) : 0,
+    purchasePrice: headerMap.purchasePrice ? toNumber(record[headerMap.purchasePrice]) : 0,
+    manufacturingDate: headerMap.manufacturingDate ? toDateString(record[headerMap.manufacturingDate]) : null,
+    expiryDate: headerMap.expiryDate ? toDateString(record[headerMap.expiryDate]) : null,
+    supplierName: headerMap.supplierName ? toText(record[headerMap.supplierName]) || null : null,
+    category: headerMap.category ? toText(record[headerMap.category]) || null : null,
+  }));
+
+  return rows.filter((r) => r.productName);
+}
+
+export interface RawParsedFile {
+  headers: string[];
+  records: Record<string, unknown>[];
+}
+
+export async function readFileRecords(file: File): Promise<RawParsedFile> {
   const isCsv = file.name.toLowerCase().endsWith(".csv");
 
   if (isCsv) {
@@ -159,7 +157,7 @@ export async function parseInventoryFile(
       skipEmptyLines: true,
       dynamicTyping: false,
     });
-    return rowsFromRecords(result.data);
+    return { headers: result.meta.fields ?? [], records: result.data };
   }
 
   const buffer = await file.arrayBuffer();
@@ -167,5 +165,6 @@ export async function parseInventoryFile(
   const firstSheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[firstSheetName];
   const records = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-  return rowsFromRecords(records);
+  const headers = records.length > 0 ? Object.keys(records[0]) : [];
+  return { headers, records };
 }

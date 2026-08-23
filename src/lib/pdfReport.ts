@@ -1,14 +1,18 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import type { ClassifiedInventoryRow, DashboardKpis } from "./types";
+import type { DashboardKpis, InventoryRecord } from "./types";
 import { formatInr } from "./format";
 
-export function downloadPdfReport(rows: ClassifiedInventoryRow[], kpis: DashboardKpis) {
+function finalY(doc: jsPDF): number {
+  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+}
+
+export function downloadPdfReport(records: InventoryRecord[], kpis: DashboardKpis) {
   const doc = new jsPDF();
   const generatedAt = new Date().toLocaleString("en-IN");
 
   doc.setFontSize(16);
-  doc.text("AI Inventory Management System — Report", 14, 18);
+  doc.text("MedStock AI — Inventory Report", 14, 18);
   doc.setFontSize(10);
   doc.setTextColor(100);
   doc.text(`Generated ${generatedAt}`, 14, 24);
@@ -18,63 +22,57 @@ export function downloadPdfReport(rows: ClassifiedInventoryRow[], kpis: Dashboar
     head: [["Metric", "Value"]],
     body: [
       ["Total inventory value", formatInr(kpis.totalInventoryValue)],
-      ["Slow / dead stock value", formatInr(kpis.slowDeadStockValue)],
-      ["Products to reorder", String(kpis.productsToReorder)],
-      ["Capital you can free up", formatInr(kpis.capitalToFreeUp)],
-      ["Cash needed to reorder", formatInr(kpis.cashNeededToReorder)],
-      [
-        "Expired / expiring soon (≤60 days)",
-        `${kpis.expiredCount + kpis.expiringSoonCount} products, ${formatInr(kpis.expiredValue + kpis.expiringSoonValue)} at risk`,
-      ],
+      ["Total SKUs", String(kpis.totalSkus)],
+      ["Available stock (units)", String(kpis.availableStock)],
+      ["Low stock items", String(kpis.lowStockCount)],
+      ["Out-of-stock items", String(kpis.outOfStockCount)],
+      ["Near-expiry batches (≤90 days)", `${kpis.nearExpiryCount}, ${formatInr(kpis.nearExpiryValue)} at risk`],
+      ["Expired batches", `${kpis.expiredCount}, ${formatInr(kpis.expiredValue)} written off`],
     ],
     theme: "grid",
     headStyles: { fillColor: [15, 118, 110] },
   });
 
-  const sellOff = rows.filter((r) => r.classification === "Sell off");
-  const keepReorder = rows.filter((r) => r.classification === "Keep & Reorder");
+  const outOfStock = records.filter((r) => r.stockStatus === "out_of_stock");
+  const lowStock = records.filter((r) => r.stockStatus === "low_stock");
 
-  const afterKpiY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
+  let y = finalY(doc) + 10;
   doc.setFontSize(12);
   doc.setTextColor(0);
-  doc.text("Sell Off — clear this stock", 14, afterKpiY);
+  doc.text("Out of Stock / Low Stock — needs reorder", 14, y);
   autoTable(doc, {
-    startY: afterKpiY + 4,
-    head: [["Product", "Days Unsold", "Value Locked"]],
-    body: sellOff.map((r) => [r.productName, r.daysInStock ?? "—", formatInr(r.value)]),
+    startY: y + 4,
+    head: [["Product", "Batch", "Warehouse", "Available", "Reorder Point", "Status"]],
+    body: [...outOfStock, ...lowStock].map((r) => [
+      r.productName,
+      r.batchNumber,
+      r.warehouseName,
+      String(r.availableQty),
+      String(r.reorderPoint),
+      r.stockStatus === "out_of_stock" ? "Out of Stock" : "Low Stock",
+    ]),
     theme: "striped",
     headStyles: { fillColor: [185, 28, 28] },
   });
 
-  const afterSellOffY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-  doc.setFontSize(12);
-  doc.text("Keep & Reorder — place a purchase order", 14, afterSellOffY);
-  autoTable(doc, {
-    startY: afterSellOffY + 4,
-    head: [["Product", "Days to Sell Out"]],
-    body: keepReorder.map((r) => [r.productName, r.daysOnHand !== null ? r.daysOnHand.toFixed(1) : "—"]),
-    theme: "striped",
-    headStyles: { fillColor: [21, 128, 61] },
-  });
-
-  const expiring = rows
-    .filter((r) => r.expiryStatus === "expired" || r.expiryStatus === "expiring-soon")
+  const expiring = records
+    .filter((r) => r.expiryStatus !== "healthy" && r.expiryStatus !== "unknown")
     .sort((a, b) => (a.daysToExpiry ?? Infinity) - (b.daysToExpiry ?? Infinity));
 
   if (expiring.length > 0) {
-    const afterReorderY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
+    y = finalY(doc) + 10;
     doc.setFontSize(12);
-    doc.text("Expiry Watch — expired or expiring within 60 days", 14, afterReorderY);
+    doc.text("Expiry Watch — expired or expiring within 90 days (FEFO order)", 14, y);
     autoTable(doc, {
-      startY: afterReorderY + 4,
-      head: [["Product", "Expiry Date", "Status", "Value at Risk"]],
+      startY: y + 4,
+      head: [["Product", "Batch", "Warehouse", "Expiry Date", "Days Left", "Qty", "Value at Risk"]],
       body: expiring.map((r) => [
         r.productName,
+        r.batchNumber,
+        r.warehouseName,
         r.expiryDate ?? "—",
-        r.expiryStatus === "expired" ? "Expired" : "Expiring soon",
+        r.daysToExpiry !== null ? String(r.daysToExpiry) : "—",
+        String(r.availableQty),
         formatInr(r.value),
       ]),
       theme: "striped",
@@ -82,5 +80,5 @@ export function downloadPdfReport(rows: ClassifiedInventoryRow[], kpis: Dashboar
     });
   }
 
-  doc.save(`adwce-inventory-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`inventory-report-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

@@ -3,16 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppData } from "@/lib/AppDataContext";
-import {
-  DashboardIcon,
-  InventoryIcon,
-  SellOffIcon,
-  ReorderIcon,
-  ExpiryIcon,
-  ReportsIcon,
-  LogoutIcon,
-} from "./icons";
+import { DashboardIcon, InventoryIcon, ReportsIcon, LogoutIcon } from "./icons";
 
+// Sell Off / Reorder / Expiry Watch are filtered views inside Inventory
+// (?filter=...), not separate pages — the dashboard's Needs Attention
+// section links straight into them. Batches, Warehouses, and Stock
+// Movements are real entities in the data model but don't have dedicated
+// pages yet; adding nav items for pages that don't exist would be worse
+// than not having them.
 const NAV_GROUPS = [
   {
     label: "Overview",
@@ -20,12 +18,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Inventory",
-    items: [
-      { label: "All Inventory", href: "/inventory", icon: InventoryIcon },
-      { label: "Sell Off", href: "/sell-off", icon: SellOffIcon },
-      { label: "Reorder", href: "/reorder", icon: ReorderIcon },
-      { label: "Expiry Watch", href: "/expiry", icon: ExpiryIcon },
-    ],
+    items: [{ label: "Inventory", href: "/inventory", icon: InventoryIcon }],
   },
   {
     label: "Reports",

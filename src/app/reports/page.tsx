@@ -7,38 +7,88 @@ import { formatInr } from "@/lib/format";
 import PageStats from "@/components/PageStats";
 
 export default function ReportsPage() {
-  const { rows, kpis } = useAppData();
+  const { records, kpis } = useAppData();
+
+  const stockoutRecords = records.filter((r) => r.stockStatus === "out_of_stock" || r.stockStatus === "low_stock");
+  const expiryRecords = records.filter((r) => r.expiryStatus !== "healthy" && r.expiryStatus !== "unknown");
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
       <h1 className="mb-2 text-2xl font-bold text-slate-900">Reports</h1>
-      <p className="mb-6 text-sm text-slate-500">
-        Download your current inventory recommendations as a PDF summary or a raw CSV export.
-      </p>
+      <p className="mb-6 text-sm text-slate-500">Export the reports that actually drive decisions — valuation, expiry, and stockouts.</p>
 
       <PageStats
         items={[
           { label: "Total Value", value: formatInr(kpis.totalInventoryValue) },
-          { label: "Slow / Dead Stock", value: formatInr(kpis.slowDeadStockValue), accent: "text-red-600" },
-          { label: "To Reorder", value: String(kpis.productsToReorder), accent: "text-emerald-600" },
-          { label: "Capital Freed", value: formatInr(kpis.capitalToFreeUp), accent: "text-teal-600" },
+          { label: "Total SKUs", value: String(kpis.totalSkus) },
+          { label: "Near-Expiry Value", value: formatInr(kpis.nearExpiryValue + kpis.expiredValue), accent: "text-amber-600" },
+          { label: "Out of Stock", value: String(kpis.outOfStockCount), accent: "text-red-600" },
         ]}
       />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row">
-        <button
-          onClick={() => downloadPdfReport(rows, kpis)}
-          className="flex-1 rounded-lg bg-teal-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
-        >
-          Generate Full AI Report (PDF)
-        </button>
-        <button
-          onClick={() => downloadInventoryCsv(rows)}
-          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Export Table (CSV)
-        </button>
+      <div className="flex flex-col gap-3">
+        <ReportRow
+          title="Full Inventory Report"
+          description="Valuation summary, stockouts, and expiry watch in one PDF."
+          action="Download PDF"
+          onClick={() => downloadPdfReport(records, kpis)}
+          primary
+        />
+        <ReportRow
+          title="Inventory Valuation"
+          description="Every batch, with quantity, warehouse, and value — as a spreadsheet."
+          action="Export CSV"
+          onClick={() => downloadInventoryCsv(records, "inventory-valuation.csv")}
+        />
+        <ReportRow
+          title="Stockout Report"
+          description={`${stockoutRecords.length} batch${stockoutRecords.length === 1 ? "" : "es"} out of stock or below reorder point.`}
+          action="Export CSV"
+          onClick={() => downloadInventoryCsv(stockoutRecords, "stockout-report.csv")}
+          disabled={stockoutRecords.length === 0}
+        />
+        <ReportRow
+          title="Expiry Report"
+          description={`${expiryRecords.length} batch${expiryRecords.length === 1 ? "" : "es"} expired or expiring within 90 days.`}
+          action="Export CSV"
+          onClick={() => downloadInventoryCsv(expiryRecords, "expiry-report.csv")}
+          disabled={expiryRecords.length === 0}
+        />
       </div>
+    </div>
+  );
+}
+
+function ReportRow({
+  title,
+  description,
+  action,
+  onClick,
+  primary = false,
+  disabled = false,
+}: {
+  title: string;
+  description: string;
+  action: string;
+  onClick: () => void;
+  primary?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div>
+        <p className="font-medium text-slate-900">{title}</p>
+        <p className="text-sm text-slate-500">{description}</p>
+      </div>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+          primary ? "bg-teal-600 text-white hover:bg-teal-700" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+        }`}
+      >
+        {action}
+      </button>
     </div>
   );
 }

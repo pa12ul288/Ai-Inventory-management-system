@@ -1,17 +1,27 @@
 import Papa from "papaparse";
-import type { ClassifiedInventoryRow } from "./types";
+import type { InventoryRecord } from "./types";
+import { batchStatusLabel } from "./stockStatus";
 
-export function downloadInventoryCsv(rows: ClassifiedInventoryRow[], filename = "inventory-export.csv") {
+export function downloadInventoryCsv(records: InventoryRecord[], filename = "inventory-export.csv") {
   const csv = Papa.unparse(
-    rows.map((r) => ({
+    records.map((r) => ({
       "Product Name": r.productName,
       SKU: r.sku,
-      "Stock Quantity": r.quantityOnHand,
-      "Value (₹)": r.value.toFixed(2),
-      "Days in Stock": r.daysInStock ?? "",
-      "AI Recommendation": r.classification,
+      Batch: r.batchNumber,
+      Warehouse: r.warehouseName,
+      "Manufacturing Date": r.manufacturingDate ?? "",
       "Expiry Date": r.expiryDate ?? "",
-      "Expiry Status": r.expiryStatus,
+      Quantity: r.quantity,
+      Available: r.availableQty,
+      Reserved: r.reservedQty,
+      Damaged: r.damagedQty,
+      Quarantined: r.quarantinedQty,
+      "Purchase Price": r.purchasePrice.toFixed(2),
+      "Value (₹)": r.value.toFixed(2),
+      Supplier: r.supplierName ?? "",
+      "Batch Status": batchStatusLabel(r.status),
+      "Stock Status": r.stockStatus,
+      "Days to Expiry": r.daysToExpiry ?? "",
     }))
   );
 

@@ -1,15 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import AppShell from "./AppShell";
 import Login from "./Login";
-import UploadScreen from "./UploadScreen";
 import { useAppData, supabaseConfigured } from "@/lib/AppDataContext";
 
 export default function AppGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { session, loadingInventory, analyzing, error, hasInventory, handleAnalyze } = useAppData();
+  const { session, loadingInventory, hasInventory } = useAppData();
 
   if (!supabaseConfigured) {
     return (
@@ -38,12 +38,23 @@ export default function AppGate({ children }: { children: ReactNode }) {
     );
   }
 
-  // First-time experience: nothing uploaded yet, no matter which page was
-  // requested, get the user into the upload flow.
-  if (!hasInventory && pathname !== "/upload") {
+  // First-time experience: nothing added yet. Let /inventory/add itself
+  // render normally; every other route shows a prompt to get started.
+  if (!hasInventory && pathname !== "/inventory/add") {
     return (
       <AppShell>
-        <UploadScreen onAnalyze={handleAnalyze} analyzing={analyzing} errorMessage={error} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <h1 className="text-xl font-semibold text-slate-900">No inventory yet</h1>
+          <p className="max-w-sm text-sm text-slate-500">
+            Add your first batch manually, or import an existing spreadsheet to get started.
+          </p>
+          <Link
+            href="/inventory/add"
+            className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-teal-700"
+          >
+            Add Inventory
+          </Link>
+        </div>
       </AppShell>
     );
   }

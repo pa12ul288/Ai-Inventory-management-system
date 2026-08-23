@@ -1,74 +1,97 @@
-# AI Inventory Management System
+# MedStock AI
 
-Dashboard behind a single-user login: sign in, upload a CSV/Excel inventory file,
-Gemini classifies every product as **Sell off**, **Watch**, or **Keep & Reorder**,
-and the dashboard shows KPIs, action lists, and the full inventory table.
-Inventory is persisted in Supabase and reloaded from there on every sign-in —
-uploading a file **adds new SKUs and updates existing ones**, it never deletes.
+A batch/warehouse-aware inventory management platform for medical/pharmaceutical
+distributors, behind a single-user login. Products, batches (with their own
+expiry, quantity, and warehouse), and every stock movement are persisted in
+Supabase and reloaded on every sign-in.
+
+## Data model
+
+- **`products`** — SKU master data (name, category, reorder point, sales velocity).
+- **`warehouses`**, **`suppliers`** — simple reference tables.
+- **`batches`** — the real inventory unit. A product can have many batches, each
+  with its own warehouse, expiry date, quantity, and available/reserved/damaged/
+  quarantined split. Two batches of the same product are never merged into one number.
+- **`stock_movements`** — an append-only ledger. Every quantity change (import,
+  manual receipt, status change) writes a row here, so "why is this 395 right
+  now" is always answerable from the data.
+
+On-hand quantity is **never** a field you overwrite directly — it's always the
+result of a batch-level change plus a logged movement.
 
 ## Local setup
 
-1. Install dependencies (already done if you're continuing from this repo):
+1. Install dependencies:
    ```bash
    npm install
    ```
-2. Copy `.env.local.example` to `.env.local` and fill in:
-   - `GEMINI_API_KEY` — from [Google AI Studio](https://aistudio.google.com/apikey)
-   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — from your Supabase
-     project's Settings → API. **Required now** — login and inventory storage don't
-     work without these; the app shows a config warning until they're set.
+2. Copy `.env.local.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`
+   / `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project's Settings → API.
+   Required — the app shows a config warning until these are set.
 3. Run `supabase/schema.sql` against your project (SQL Editor in the Supabase
-   dashboard, or `psql`/the Supabase CLI). It creates a single `inventory` table
-   keyed on `(user_id, sku_code)` with row-level security scoping each user to
-   their own rows.
-4. **Create the one user account.** There's no public sign-up form by design —
-   go to Supabase dashboard → Authentication → Users → Add user, and set an
-   email + password. That's the only account the app will ever have.
-5. **Enable OTP-style password reset emails.** By default Supabase's recovery
-   email contains a magic link, not a typed-in code. To get an actual one-time
-   code: Authentication → Email Templates → Reset Password, and make sure the
-   template includes `{{ .Token }}` (Supabase's default recovery template
-   already does — just don't remove it). That 6-digit token is what the app's
-   "Forgot password?" flow asks the user to type in.
+   dashboard). It creates `products`/`warehouses`/`suppliers`/`batches`/
+   `stock_movements` with RLS scoping every row to its owning user, and — if
+   you're upgrading from the earlier single-table version of this app — safely
+   migrates your existing `inventory` rows into the new model (one batch per
+   row, in a "Default Warehouse", with an `import` movement recorded). The old
+   table is left in place afterward, untouched, as an audit fallback.
+4. **Create the one user account.** There's no public sign-up form in the
+   Supabase dashboard sense, but the app's own login page has a "Create
+   account" link that calls Supabase Auth directly — use that, or add a user
+   manually via Authentication → Users if you prefer.
+5. **Enable OTP-style password reset emails.** Supabase's default recovery
+   email includes `{{ .Token }}` in its template — don't remove it. That's
+   what the app's "Forgot password?" flow asks the user to type in.
 6. `npm run dev` and open http://localhost:3000.
 
 ## Deploying to Vercel
 
 1. Push this repo to GitHub.
 2. Import it in Vercel ([vercel.com/new](https://vercel.com/new)).
-3. Add the same three env vars from `.env.local` in the Vercel project's
-   Settings → Environment Variables.
-4. Deploy. No other config needed — it's a standard Next.js app.
+3. Add the two Supabase env vars in the Vercel project's Settings → Environment Variables.
+4. Deploy.
 
-## Expected inventory file columns
+## Adding inventory
 
-The parser recognizes common header variants automatically, but the canonical
-columns are:
+`/inventory/add` has two tabs:
 
-| Column | Notes |
-|---|---|
-| Product Name | required (falls back to the first column if no header matches) |
-| SKU | used as the persistence key. If missing, a stable key is generated from the product name so re-uploads still update the same row instead of duplicating it |
-| Quantity On Hand | required |
-| Cost Price | required (per unit) |
-| Last Sale Date | used for the "no movement 60+ days" rule |
-| Avg Daily Sales | used for the "days on hand" / reorder-timing rules |
+- **Manual Entry** — one batch at a time. If the product/warehouse/batch
+  combination already exists, the entered quantity is **added** to what's
+  there (a receipt). Otherwise a new batch is created.
+- **Import File** — a reconciliation workflow: Upload → Map Columns →
+  Validate & Preview → Confirm. Every row is classified as a new product, a
+  new batch on an existing product, an update to an existing batch, a
+  duplicate within the file, or a validation error, before anything is
+  written. Duplicates and errors are always skipped. An update **replaces**
+  the batch's quantity with the file's value (the sheet is treated as the
+  current truth), unlike manual entry's additive behavior.
 
-## Classification rules (Gemini-driven, deterministic fallback)
+The reconciliation engine (`src/lib/reconciliation.ts`) is a pure function —
+given parsed rows and a snapshot of existing products/batches, it returns a
+diff. It never touches the database itself; `commitReconciliation` in
+`src/lib/inventoryData.ts` is what actually writes the reviewed result.
 
-- **Sell off** — no movement for 60+ days, or days-on-hand > 90
-- **Keep & Reorder** — will run out in under 14 days at the current sales rate,
-  OR was last sold in August 2026 and has under 500 units on hand (a temporary
-  rule for testing without a sales-velocity column — see note in `classify.ts`)
-- **Watch** — everything else
+## Stock status and expiry
 
-`src/lib/classify.ts` holds the deterministic rule engine used as the fallback
-if the Gemini call fails; `src/app/api/classify/route.ts` sends the same rules
-to Gemini (`gemini-flash-latest`) for the live classification.
+Both are computed deterministically (`src/lib/stockStatus.ts`), not
+AI-classified — this matters for something correctness-critical like
+inventory counts:
 
-## Auth
+- **Stock status**: Out of Stock (0 available) → Low Stock (at/below the
+  product's reorder point) → Overstock (>180 days of stock at the current
+  sales rate) → Slow Moving (zero recorded sales) → Healthy.
+- **Expiry status**: Expired → Expiring within 30/60/90 days → Healthy,
+  based on each batch's own expiry date.
 
-Email/password sign-in via Supabase Auth, single user, no roles, no sign-up UI.
-"Forgot password?" sends a one-time code by email, which the user types in
-alongside a new password (`src/components/Login.tsx`). Signing out returns to
-the login page; signing in reloads inventory straight from Supabase.
+## What's built vs. deferred
+
+**Built:** auth, the products/batches/warehouses/suppliers/movements data
+model, reconciled Excel/CSV import, manual entry, a batch-level searchable/
+filterable/sortable Inventory table with bulk status actions, a Dashboard
+that surfaces only actionable "Needs Attention" items (not decorative KPI
+cards), and Reports (valuation/stockout/expiry, PDF + CSV).
+
+**Deferred** (the data layer supports these, but there's no dedicated UI yet):
+a Product detail page, a Stock Movement ledger page, a Warehouses management
+page, Purchase Orders/Returns, and Alerts as a persisted/dismissible entity
+rather than a computed dashboard section.

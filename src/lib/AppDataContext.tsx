@@ -1,69 +1,43 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, supabaseConfigured } from "./supabaseClient";
-import { fetchInventory, upsertInventory } from "./inventoryStore";
+import {
+  fetchInventoryRecords,
+  fetchWarehouses,
+  fetchSuppliers,
+  commitReconciliation,
+  addManualBatch,
+  updateBatchStatuses,
+  type ManualBatchInput,
+} from "./inventoryData";
 import { computeKpis } from "./kpis";
-import { computeExpiryInfo } from "./expiry";
-import type { ClassifiedInventoryRow, Classification, DashboardKpis, IdentifiedRow, RawInventoryRow } from "./types";
-
-async function classifyRows(identified: IdentifiedRow[]): Promise<ClassifiedInventoryRow[]> {
-  if (identified.length === 0) return [];
-
-  const res = await fetch("/api/classify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: identified.map((row) => ({ id: row.id, row })) }),
-  });
-
-  if (!res.ok) throw new Error("Classification request failed");
-
-  const data: {
-    items: { id: string; daysInStock: number | null; daysOnHand: number | null; classification: Classification }[];
-  } = await res.json();
-
-  const resultById = new Map(data.items.map((item) => [item.id, item]));
-
-  return identified.map((row) => {
-    const result = resultById.get(row.id);
-    const { daysToExpiry, expiryStatus } = computeExpiryInfo(row.expiryDate);
-    return {
-      ...row,
-      value: row.quantityOnHand * row.costPrice,
-      daysInStock: result?.daysInStock ?? null,
-      daysOnHand: result?.daysOnHand ?? null,
-      classification: result?.classification ?? "Watch",
-      daysToExpiry,
-      expiryStatus,
-    };
-  });
-}
+import type { BatchStatus, DashboardKpis, InventoryRecord, ReconciliationSummary, Supplier, Warehouse } from "./types";
 
 interface AppDataValue {
   session: Session | null | undefined;
   loadingInventory: boolean;
-  analyzing: boolean;
-  error: string | null;
-  filename: string;
-  rows: ClassifiedInventoryRow[];
+  records: InventoryRecord[];
   kpis: DashboardKpis;
+  warehouses: Warehouse[];
+  suppliers: Supplier[];
   hasInventory: boolean;
-  handleAnalyze: (rawRows: RawInventoryRow[], fname: string) => Promise<void>;
+  refreshInventory: () => Promise<void>;
+  handleManualAdd: (input: ManualBatchInput) => Promise<{ error: string | null }>;
+  handleImportCommit: (summary: ReconciliationSummary, defaultWarehouseName: string) => Promise<{ error: string | null }>;
+  handleUpdateBatchStatuses: (batchIds: string[], status: BatchStatus) => Promise<{ error: string | null }>;
   handleLogout: () => Promise<void>;
 }
 
 const AppDataContext = createContext<AppDataValue | null>(null);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [session, setSession] = useState<Session | null | undefined>(() => (supabase ? undefined : null));
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [filename, setFilename] = useState("");
-  const [rows, setRows] = useState<ClassifiedInventoryRow[]>([]);
+  const [records, setRecords] = useState<InventoryRecord[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -74,6 +48,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  async function loadAll() {
+    const [recs, whs, sups] = await Promise.all([fetchInventoryRecords(), fetchWarehouses(), fetchSuppliers()]);
+    setRecords(recs);
+    setWarehouses(whs);
+    setSuppliers(sups);
+  }
+
   // Inventory always loads from Supabase on sign-in, never from leftover
   // in-memory state.
   useEffect(() => {
@@ -83,16 +64,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     (async () => {
       setLoadingInventory(true);
       try {
-        const identified = await fetchInventory();
-        if (cancelled) return;
-        if (identified.length > 0) {
-          const classified = await classifyRows(identified);
-          if (cancelled) return;
-          setRows(classified);
-          setFilename("Saved inventory");
-        }
+        await loadAll();
       } catch (e) {
-        console.error("Failed to load inventory from Supabase:", e);
+        console.error("Failed to load inventory data from Supabase:", e);
       } finally {
         if (!cancelled) setLoadingInventory(false);
       }
@@ -103,50 +77,46 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
   }, [session]);
 
-  async function handleAnalyze(rawRows: RawInventoryRow[], fname: string) {
-    setAnalyzing(true);
-    setError(null);
+  async function handleManualAdd(input: ManualBatchInput) {
+    const result = await addManualBatch(input);
+    if (!result.error) await loadAll();
+    return result;
+  }
 
-    try {
-      const { error: upsertError } = await upsertInventory(rawRows);
-      if (upsertError) throw new Error(upsertError);
+  async function handleImportCommit(summary: ReconciliationSummary, defaultWarehouseName: string) {
+    const result = await commitReconciliation(summary, defaultWarehouseName);
+    if (!result.error) await loadAll();
+    return result;
+  }
 
-      // Reload the full merged inventory from Supabase rather than just the
-      // rows from this file, so the dashboard reflects existing + updated +
-      // new products together.
-      const identified = await fetchInventory();
-      const classified = await classifyRows(identified);
-
-      setRows(classified);
-      setFilename(fname);
-      router.push("/");
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong while saving and analyzing your file. Please try again.");
-    } finally {
-      setAnalyzing(false);
-    }
+  async function handleUpdateBatchStatuses(batchIds: string[], status: BatchStatus) {
+    const result = await updateBatchStatuses(batchIds, status);
+    if (!result.error) await loadAll();
+    return result;
   }
 
   async function handleLogout() {
     if (!supabase) return;
     await supabase.auth.signOut();
-    setRows([]);
-    setFilename("");
+    setRecords([]);
+    setWarehouses([]);
+    setSuppliers([]);
   }
 
-  const kpis = useMemo(() => computeKpis(rows), [rows]);
+  const kpis = useMemo(() => computeKpis(records), [records]);
 
   const value: AppDataValue = {
     session,
     loadingInventory,
-    analyzing,
-    error,
-    filename,
-    rows,
+    records,
     kpis,
-    hasInventory: rows.length > 0,
-    handleAnalyze,
+    warehouses,
+    suppliers,
+    hasInventory: records.length > 0,
+    refreshInventory: loadAll,
+    handleManualAdd,
+    handleImportCommit,
+    handleUpdateBatchStatuses,
     handleLogout,
   };
 
