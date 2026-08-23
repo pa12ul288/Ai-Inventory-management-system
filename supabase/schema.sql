@@ -131,54 +131,9 @@ create policy "Users manage their own batches" on batches
 create policy "Users manage their own stock movements" on stock_movements
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- ---------------------------------------------------------------------
--- One-time migration from the old flat `inventory` table, if present.
--- Safe to re-run: every insert is on conflict do nothing. The old table
--- itself is left in place (not dropped) as an untouched audit fallback.
--- ---------------------------------------------------------------------
-
-do $$
-begin
-  if exists (
-    select 1 from information_schema.columns
-    where table_name = 'inventory' and column_name = 'user_id'
-  ) then
-
-    insert into products (user_id, sku, name, avg_daily_sales, last_sale_date, created_at, updated_at)
-    select user_id, sku_code, product_name, avg_daily_sales, last_sale_date, created_at, updated_at
-    from inventory
-    on conflict (user_id, sku) do nothing;
-
-    insert into warehouses (user_id, name)
-    select distinct user_id, 'Default Warehouse' from inventory
-    on conflict (user_id, name) do nothing;
-
-    insert into batches (
-      user_id, product_id, warehouse_id, batch_number, expiry_date,
-      quantity, available_qty, purchase_price, status
-    )
-    select
-      inv.user_id,
-      p.id,
-      w.id,
-      'LEGACY-' || inv.sku_code,
-      inv.expiry_date,
-      inv.quantity_on_hand,
-      inv.quantity_on_hand,
-      inv.cost_price,
-      'active'
-    from inventory inv
-    join products p on p.user_id = inv.user_id and p.sku = inv.sku_code
-    join warehouses w on w.user_id = inv.user_id and w.name = 'Default Warehouse'
-    on conflict (user_id, product_id, warehouse_id, batch_number) do nothing;
-
-    insert into stock_movements (user_id, batch_id, movement_type, quantity_change, previous_qty, new_qty, reference, warehouse_id)
-    select b.user_id, b.id, 'import', b.quantity, 0, b.quantity, 'Migrated from legacy inventory table', b.warehouse_id
-    from batches b
-    where b.batch_number like 'LEGACY-%'
-      and not exists (
-        select 1 from stock_movements m where m.batch_id = b.id and m.reference = 'Migrated from legacy inventory table'
-      );
-
-  end if;
-end $$;
+-- Earlier versions of this file included a one-time migration from the old
+-- flat `inventory` table. Dropped: it was only ever throwaway test data in
+-- practice, and the migration's existence-check kept colliding with
+-- something (likely a same-named table/view in another schema) in a way
+-- that wasn't worth chasing further. If you need to bring old rows across
+-- by hand later, `inventory` is still sitting there untouched.
