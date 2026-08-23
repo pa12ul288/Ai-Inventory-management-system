@@ -23,13 +23,13 @@ export async function updateBatchStatuses(batchIds: string[], status: BatchStatu
   const userId = userData.user.id;
 
   const { data: batches, error: fetchError } = await supabase
-    .from("batches")
+    .from("inv_batches")
     .select("id, available_qty, warehouse_id")
     .in("id", batchIds);
   if (fetchError) return { error: fetchError.message };
 
   const { error: updateError } = await supabase
-    .from("batches")
+    .from("inv_batches")
     .update({ status, updated_at: new Date().toISOString() })
     .in("id", batchIds);
   if (updateError) return { error: updateError.message };
@@ -46,7 +46,7 @@ export async function updateBatchStatuses(batchIds: string[], status: BatchStatu
   }));
 
   if (movements.length > 0) {
-    const { error: movementError } = await supabase.from("stock_movements").insert(movements);
+    const { error: movementError } = await supabase.from("inv_stock_movements").insert(movements);
     if (movementError) console.error("Failed to log status-change movements:", movementError);
   }
 
@@ -55,7 +55,7 @@ export async function updateBatchStatuses(batchIds: string[], status: BatchStatu
 
 export async function fetchWarehouses(): Promise<Warehouse[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("warehouses").select("id, name, location").order("name");
+  const { data, error } = await supabase.from("inv_warehouses").select("id, name, location").order("name");
   if (error) {
     console.error("Failed to fetch warehouses:", error);
     return [];
@@ -65,7 +65,7 @@ export async function fetchWarehouses(): Promise<Warehouse[]> {
 
 export async function fetchSuppliers(): Promise<Supplier[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("suppliers").select("id, name, contact_info").order("name");
+  const { data, error } = await supabase.from("inv_suppliers").select("id, name, contact_info").order("name");
   if (error) {
     console.error("Failed to fetch suppliers:", error);
     return [];
@@ -79,14 +79,14 @@ export async function fetchInventoryRecords(): Promise<InventoryRecord[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from("batches")
+    .from("inv_batches")
     .select(
       `id, batch_number, manufacturing_date, expiry_date, quantity, available_qty,
        reserved_qty, damaged_qty, quarantined_qty, purchase_price, status, supplier_id,
        product_id, warehouse_id,
-       products ( sku, name, category, reorder_point, avg_daily_sales ),
-       warehouses ( name ),
-       suppliers ( name )`
+       products:inv_products ( sku, name, category, reorder_point, avg_daily_sales ),
+       warehouses:inv_warehouses ( name ),
+       suppliers:inv_suppliers ( name )`
     )
     .order("expiry_date", { ascending: true, nullsFirst: false });
 
@@ -162,8 +162,8 @@ export async function fetchReconciliationLookups(): Promise<ReconciliationLookup
   if (!supabase) return { products: [], batches: [] };
 
   const [{ data: products, error: productsError }, { data: batches, error: batchesError }] = await Promise.all([
-    supabase.from("products").select("id, sku, name"),
-    supabase.from("batches").select("id, product_id, batch_number, warehouses ( name )"),
+    supabase.from("inv_products").select("id, sku, name"),
+    supabase.from("inv_batches").select("id, product_id, batch_number, warehouses:inv_warehouses ( name )"),
   ]);
 
   if (productsError) console.error("Failed to fetch products for reconciliation:", productsError);
@@ -182,7 +182,11 @@ export async function fetchReconciliationLookups(): Promise<ReconciliationLookup
   };
 }
 
-async function getOrCreateByName(table: "warehouses" | "suppliers", userId: string, name: string): Promise<string> {
+async function getOrCreateByName(
+  table: "inv_warehouses" | "inv_suppliers",
+  userId: string,
+  name: string
+): Promise<string> {
   const { data: existing } = await supabase!
     .from(table)
     .select("id")
@@ -191,8 +195,9 @@ async function getOrCreateByName(table: "warehouses" | "suppliers", userId: stri
     .maybeSingle();
   if (existing) return existing.id;
 
+  const label = table === "inv_warehouses" ? "warehouse" : "supplier";
   const { data, error } = await supabase!.from(table).insert({ user_id: userId, name }).select("id").single();
-  if (error || !data) throw error ?? new Error(`Failed to create ${table.slice(0, -1)}`);
+  if (error || !data) throw error ?? new Error(`Failed to create ${label}`);
   return data.id;
 }
 
@@ -220,14 +225,14 @@ export async function commitReconciliation(
 
   async function resolveWarehouseId(name: string): Promise<string> {
     const key = name.toLowerCase();
-    if (!warehouseCache.has(key)) warehouseCache.set(key, await getOrCreateByName("warehouses", userId, name));
+    if (!warehouseCache.has(key)) warehouseCache.set(key, await getOrCreateByName("inv_warehouses", userId, name));
     return warehouseCache.get(key)!;
   }
 
   async function resolveSupplierId(name: string | null): Promise<string | null> {
     if (!name) return null;
     const key = name.toLowerCase();
-    if (!supplierCache.has(key)) supplierCache.set(key, await getOrCreateByName("suppliers", userId, name));
+    if (!supplierCache.has(key)) supplierCache.set(key, await getOrCreateByName("inv_suppliers", userId, name));
     return supplierCache.get(key)!;
   }
 
@@ -244,7 +249,7 @@ export async function commitReconciliation(
 
       if (item.action === "new_product") {
         const { data: product, error: productError } = await supabase
-          .from("products")
+          .from("inv_products")
           .upsert(
             {
               user_id: userId,
@@ -265,7 +270,7 @@ export async function commitReconciliation(
 
       if (item.action === "new_product" || item.action === "new_batch") {
         const { data: batch, error: batchError } = await supabase
-          .from("batches")
+          .from("inv_batches")
           .insert({
             user_id: userId,
             product_id: productId,
@@ -283,7 +288,7 @@ export async function commitReconciliation(
           .single();
         if (batchError || !batch) throw batchError ?? new Error("Failed to create batch");
 
-        await supabase.from("stock_movements").insert({
+        await supabase.from("inv_stock_movements").insert({
           user_id: userId,
           batch_id: batch.id,
           movement_type: "import",
@@ -295,7 +300,7 @@ export async function commitReconciliation(
         });
       } else if (item.action === "update_batch" && item.existingBatchId) {
         const { data: existingBatch, error: fetchError } = await supabase
-          .from("batches")
+          .from("inv_batches")
           .select("available_qty")
           .eq("id", item.existingBatchId)
           .single();
@@ -304,7 +309,7 @@ export async function commitReconciliation(
         const previousQty = Number(existingBatch.available_qty);
 
         const { error: updateError } = await supabase
-          .from("batches")
+          .from("inv_batches")
           .update({
             quantity: row.quantity,
             available_qty: row.quantity,
@@ -317,7 +322,7 @@ export async function commitReconciliation(
           .eq("id", item.existingBatchId);
         if (updateError) throw updateError;
 
-        await supabase.from("stock_movements").insert({
+        await supabase.from("inv_stock_movements").insert({
           user_id: userId,
           batch_id: item.existingBatchId,
           movement_type: "import",
@@ -361,12 +366,12 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
   const userId = userData.user.id;
 
   try {
-    const warehouseId = await getOrCreateByName("warehouses", userId, input.warehouseName || DEFAULT_WAREHOUSE_NAME);
-    const supplierId = input.supplierName ? await getOrCreateByName("suppliers", userId, input.supplierName) : null;
+    const warehouseId = await getOrCreateByName("inv_warehouses", userId, input.warehouseName || DEFAULT_WAREHOUSE_NAME);
+    const supplierId = input.supplierName ? await getOrCreateByName("inv_suppliers", userId, input.supplierName) : null;
     const sku = resolveSku(input.sku, input.productName);
 
     const { data: existingProduct } = await supabase
-      .from("products")
+      .from("inv_products")
       .select("id")
       .eq("user_id", userId)
       .eq("sku", sku)
@@ -375,7 +380,7 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
     let productId = existingProduct?.id as string | undefined;
     if (!productId) {
       const { data: product, error: productError } = await supabase
-        .from("products")
+        .from("inv_products")
         .insert({ user_id: userId, sku, name: input.productName, category: input.category, default_supplier_id: supplierId })
         .select("id")
         .single();
@@ -386,7 +391,7 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
     const batchNumber = input.batchNumber || "UNSPECIFIED";
 
     const { data: existingBatch } = await supabase
-      .from("batches")
+      .from("inv_batches")
       .select("id, available_qty")
       .eq("user_id", userId)
       .eq("product_id", productId)
@@ -399,12 +404,12 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
       const newQty = previousQty + input.quantity;
 
       const { error: updateError } = await supabase
-        .from("batches")
+        .from("inv_batches")
         .update({ quantity: newQty, available_qty: newQty, updated_at: new Date().toISOString() })
         .eq("id", existingBatch.id);
       if (updateError) throw updateError;
 
-      await supabase.from("stock_movements").insert({
+      await supabase.from("inv_stock_movements").insert({
         user_id: userId,
         batch_id: existingBatch.id,
         movement_type: "receipt",
@@ -416,7 +421,7 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
       });
     } else {
       const { data: batch, error: batchError } = await supabase
-        .from("batches")
+        .from("inv_batches")
         .insert({
           user_id: userId,
           product_id: productId,
@@ -434,7 +439,7 @@ export async function addManualBatch(input: ManualBatchInput): Promise<{ error: 
         .single();
       if (batchError || !batch) throw batchError ?? new Error("Failed to create batch");
 
-      await supabase.from("stock_movements").insert({
+      await supabase.from("inv_stock_movements").insert({
         user_id: userId,
         batch_id: batch.id,
         movement_type: "receipt",

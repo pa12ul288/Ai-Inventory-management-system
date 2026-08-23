@@ -7,14 +7,20 @@ Supabase and reloaded on every sign-in.
 
 ## Data model
 
-- **`products`** — SKU master data (name, category, reorder point, sales velocity).
-- **`warehouses`**, **`suppliers`** — simple reference tables.
-- **`batches`** — the real inventory unit. A product can have many batches, each
+- **`inv_products`** — SKU master data (name, category, reorder point, sales velocity).
+- **`inv_warehouses`**, **`inv_suppliers`** — simple reference tables.
+- **`inv_batches`** — the real inventory unit. A product can have many batches, each
   with its own warehouse, expiry date, quantity, and available/reserved/damaged/
   quarantined split. Two batches of the same product are never merged into one number.
-- **`stock_movements`** — an append-only ledger. Every quantity change (import,
+- **`inv_stock_movements`** — an append-only ledger. Every quantity change (import,
   manual receipt, status change) writes a row here, so "why is this 395 right
   now" is always answerable from the data.
+
+Tables are prefixed `inv_*` because the Supabase project this was built against
+already had unrelated tables named `products`/`suppliers`/etc. from something
+else — the prefix avoids colliding with whatever that is, rather than risking
+altering tables this app doesn't own. If you're starting from a genuinely empty
+project, the prefix is just a naming convention, not a requirement.
 
 On-hand quantity is **never** a field you overwrite directly — it's always the
 result of a batch-level change plus a logged movement.
@@ -29,12 +35,13 @@ result of a batch-level change plus a logged movement.
    / `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project's Settings → API.
    Required — the app shows a config warning until these are set.
 3. Run `supabase/schema.sql` against your project (SQL Editor in the Supabase
-   dashboard). It creates `products`/`warehouses`/`suppliers`/`batches`/
-   `stock_movements` with RLS scoping every row to its owning user, and — if
-   you're upgrading from the earlier single-table version of this app — safely
-   migrates your existing `inventory` rows into the new model (one batch per
-   row, in a "Default Warehouse", with an `import` movement recorded). The old
-   table is left in place afterward, untouched, as an audit fallback.
+   dashboard). It creates `inv_products`/`inv_warehouses`/`inv_suppliers`/
+   `inv_batches`/`inv_stock_movements` with RLS scoping every row to its
+   owning user. If you're upgrading from the earlier single-table version of
+   this app, the old `inventory` table is left in place, untouched — there's
+   no automatic migration (dropped after it kept colliding with an unrelated
+   table of the same name in one project); bring old rows across by hand if
+   you need them.
 4. **Create the one user account.** There's no public sign-up form in the
    Supabase dashboard sense, but the app's own login page has a "Create
    account" link that calls Supabase Auth directly — use that, or add a user
