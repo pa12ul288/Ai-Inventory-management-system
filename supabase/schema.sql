@@ -139,7 +139,10 @@ create policy "Users manage their own stock movements" on stock_movements
 
 do $$
 begin
-  if exists (select 1 from information_schema.tables where table_name = 'inventory') then
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'inventory' and column_name = 'user_id'
+  ) then
 
     insert into products (user_id, sku, name, avg_daily_sales, last_sale_date, created_at, updated_at)
     select user_id, sku_code, product_name, avg_daily_sales, last_sale_date, created_at, updated_at
