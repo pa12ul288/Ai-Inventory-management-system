@@ -3,11 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppData } from "@/lib/AppDataContext";
-import { DashboardIcon, InventoryIcon, ReportsIcon, SettingsIcon, LogoutIcon } from "./icons";
+import {
+  DashboardIcon,
+  InventoryIcon,
+  SupplierIcon,
+  WarehouseIcon,
+  SparkleIcon,
+  ReportsIcon,
+  SettingsIcon,
+  LogoutIcon,
+} from "./icons";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: DashboardIcon },
   { label: "Inventory", href: "/inventory", icon: InventoryIcon },
+  { label: "AI Recommendations", href: "/ai-recommendations", icon: SparkleIcon },
+  { label: "Suppliers", href: "/suppliers", icon: SupplierIcon },
+  { label: "Warehouse", href: "/warehouse", icon: WarehouseIcon },
   { label: "Reports", href: "/reports", icon: ReportsIcon },
 ];
 

@@ -132,6 +132,35 @@ export function LogoutIcon({ className = base }: IconProps) {
   );
 }
 
+export function SupplierIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M2 7h11v9H2z" />
+      <path d="M13 10h4l4 3v3h-8z" />
+      <circle cx="6" cy="18.5" r="1.8" />
+      <circle cx="17.5" cy="18.5" r="1.8" />
+    </svg>
+  );
+}
+
+export function WarehouseIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 9.5 12 3l9 6.5V21H3Z" />
+      <path d="M9 21v-7h6v7" />
+    </svg>
+  );
+}
+
+export function SparkleIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
