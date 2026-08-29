@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { InventoryRecord, StockStatus, BatchStatus } from "@/lib/types";
 import { formatInr } from "@/lib/format";
 import { downloadInventoryCsv } from "@/lib/csvExport";
@@ -205,7 +206,9 @@ export default function InventoryTable({
                   />
                 </td>
                 <td className="px-3 py-2.5">
-                  <p className="font-medium text-slate-800">{r.productName}</p>
+                  <Link href={`/inventory/${r.productId}`} className="font-medium text-slate-800 hover:text-teal-700 hover:underline">
+                    {r.productName}
+                  </Link>
                   <p className="text-xs text-slate-400">{r.sku || "No SKU"}</p>
                 </td>
                 <td className="px-3 py-2.5 text-slate-600">{r.batchNumber}</td>

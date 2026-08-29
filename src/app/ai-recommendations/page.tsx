@@ -11,6 +11,7 @@ interface Rec {
   detail: string;
   impact?: string;
   filter: FilterValue;
+  href?: string;
   tone: "red" | "amber" | "indigo";
 }
 
@@ -43,6 +44,7 @@ export default function AIRecommendationsPage() {
         detail: "Can no longer be legally sold. Write off, return to supplier, or dispose.",
         impact: `${formatInr(value)} written off`,
         filter: "expired",
+        href: "/expiry-risk",
         tone: "red",
       });
     }
@@ -53,6 +55,7 @@ export default function AIRecommendationsPage() {
         title: `${lowStock.length} product${lowStock.length === 1 ? "" : "s"} at or below reorder point`,
         detail: "Place a purchase order before these run out entirely.",
         filter: "low_stock",
+        href: "/reorder-intelligence",
         tone: "amber",
       });
     }
@@ -63,6 +66,7 @@ export default function AIRecommendationsPage() {
         detail: "Prioritize selling these before they become write-offs.",
         impact: `${formatInr(value)} at risk`,
         filter: "expiring",
+        href: "/expiry-risk",
         tone: "amber",
       });
     }
@@ -75,6 +79,7 @@ export default function AIRecommendationsPage() {
         detail: "More than ~6 months of stock at the current sales rate. Reduce next purchase order.",
         impact: `${formatInr(value)} tied up above optimal stock`,
         filter: "overstock",
+        href: "/slow-moving",
         tone: "indigo",
       });
     }
@@ -85,6 +90,7 @@ export default function AIRecommendationsPage() {
         detail: "Sitting in stock with no recorded movement. Consider discounting or discontinuing.",
         impact: `${formatInr(value)} of capital idle`,
         filter: "slow_moving",
+        href: "/slow-moving",
         tone: "indigo",
       });
     }
@@ -152,7 +158,7 @@ function RecCard({ rec }: { rec: Rec }) {
         {rec.impact && <p className="mt-1 text-xs font-medium text-slate-700">{rec.impact}</p>}
       </div>
       <Link
-        href={`/inventory?filter=${rec.filter}`}
+        href={rec.href ?? `/inventory?filter=${rec.filter}`}
         className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
       >
         View

@@ -15,17 +15,25 @@ import {
   CustomersIcon,
   CashFlowIcon,
   ForecastIcon,
+  ExpiryIcon,
+  ReorderIcon,
+  TrendingDownIcon,
+  DataSyncIcon,
 } from "./icons";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: DashboardIcon },
   { label: "Inventory", href: "/inventory", icon: InventoryIcon },
   { label: "AI Recommendations", href: "/ai-recommendations", icon: SparkleIcon },
+  { label: "Expiry Risk", href: "/expiry-risk", icon: ExpiryIcon },
+  { label: "Reorder Intelligence", href: "/reorder-intelligence", icon: ReorderIcon },
+  { label: "Slow-Moving Stock", href: "/slow-moving", icon: TrendingDownIcon },
   { label: "Demand Forecast", href: "/demand-forecast", icon: ForecastIcon },
   { label: "Cash Flow", href: "/cash-flow", icon: CashFlowIcon },
   { label: "Customers", href: "/customers", icon: CustomersIcon },
   { label: "Suppliers", href: "/suppliers", icon: SupplierIcon },
   { label: "Warehouse", href: "/warehouse", icon: WarehouseIcon },
+  { label: "Data Sync", href: "/data-sync", icon: DataSyncIcon },
   { label: "Reports", href: "/reports", icon: ReportsIcon },
 ];
 

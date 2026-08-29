@@ -462,6 +462,107 @@ export async function markInvoicePaid(invoiceId: string): Promise<{ error: strin
   return { error: error ? error.message : null };
 }
 
+export interface ImportHistoryEntry {
+  id: string;
+  createdAt: string;
+  reference: string | null;
+  quantityChange: number;
+  warehouseName: string | null;
+  productName: string;
+  batchNumber: string;
+}
+
+/** Every import ever committed, newest first — the real substitute for a
+ * "Tally sync log" since there's no live API integration, only file
+ * upload/reconciliation. */
+export async function fetchImportHistory(): Promise<ImportHistoryEntry[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("inv_stock_movements")
+    .select(
+      `id, created_at, reference, quantity_change,
+       warehouses:inv_warehouses ( name ),
+       batches:inv_batches ( batch_number, products:inv_products ( name ) )`
+    )
+    .eq("movement_type", "import")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("Failed to fetch import history:", error);
+    return [];
+  }
+
+  type Row = {
+    id: string;
+    created_at: string;
+    reference: string | null;
+    quantity_change: number;
+    warehouses: { name: string } | null;
+    batches: { batch_number: string; products: { name: string } | null } | null;
+  };
+
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    createdAt: r.created_at,
+    reference: r.reference,
+    quantityChange: Number(r.quantity_change),
+    warehouseName: r.warehouses?.name ?? null,
+    productName: r.batches?.products?.name ?? "Unknown product",
+    batchNumber: r.batches?.batch_number ?? "",
+  }));
+}
+
+export interface ProductMovement {
+  id: string;
+  createdAt: string;
+  movementType: string;
+  quantityChange: number;
+  newQty: number;
+  reference: string | null;
+  batchNumber: string;
+}
+
+/** Full movement ledger for one product, across all its batches — the
+ * "purchase/sales history" section of a product detail view. */
+export async function fetchProductMovements(productId: string): Promise<ProductMovement[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("inv_stock_movements")
+    .select(
+      `id, created_at, movement_type, quantity_change, new_qty, reference,
+       batches:inv_batches!inner ( batch_number, product_id )`
+    )
+    .eq("batches.product_id", productId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("Failed to fetch product movements:", error);
+    return [];
+  }
+
+  type Row = {
+    id: string;
+    created_at: string;
+    movement_type: string;
+    quantity_change: number;
+    new_qty: number;
+    reference: string | null;
+    batches: { batch_number: string; product_id: string } | null;
+  };
+
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    createdAt: r.created_at,
+    movementType: r.movement_type,
+    quantityChange: Number(r.quantity_change),
+    newQty: Number(r.new_qty),
+    reference: r.reference,
+    batchNumber: r.batches?.batch_number ?? "",
+  }));
+}
+
 export interface ManualBatchInput {
   productName: string;
   sku: string;

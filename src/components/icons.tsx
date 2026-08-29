@@ -208,6 +208,17 @@ export function ForecastIcon({ className = base }: IconProps) {
   );
 }
 
+export function DataSyncIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 4v5h5" />
+      <path d="M20 20v-5h-5" />
+      <path d="M4.6 9A8 8 0 0 1 19 8" />
+      <path d="M19.4 15A8 8 0 0 1 5 16" />
+    </svg>
+  );
+}
+
 export function FilterIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
