@@ -223,32 +223,42 @@ export async function commitReconciliation(
   const warehouseCache = new Map<string, string>();
   const supplierCache = new Map<string, string>();
 
-  async function resolveWarehouseId(name: string): Promise<string> {
-    const key = name.toLowerCase();
-    if (!warehouseCache.has(key)) warehouseCache.set(key, await getOrCreateByName("inv_warehouses", userId, name));
-    return warehouseCache.get(key)!;
-  }
-
-  async function resolveSupplierId(name: string | null): Promise<string | null> {
-    if (!name) return null;
-    const key = name.toLowerCase();
-    if (!supplierCache.has(key)) supplierCache.set(key, await getOrCreateByName("inv_suppliers", userId, name));
-    return supplierCache.get(key)!;
-  }
+  const activeItems = summary.items.filter((item) => item.action !== "duplicate" && item.action !== "error");
 
   try {
-    for (const item of summary.items) {
-      if (item.action === "duplicate" || item.action === "error") continue;
+    // Resolve every distinct warehouse/supplier name once, up front and
+    // sequentially, so the per-row work below never re-triggers a
+    // getOrCreateByName race and can safely run in parallel.
+    const warehouseNames = new Set<string>();
+    const supplierNames = new Set<string>();
+    for (const item of activeItems) {
+      warehouseNames.add((item.row.warehouseName || defaultWarehouseName).toLowerCase());
+      if (item.row.supplierName) supplierNames.add(item.row.supplierName.toLowerCase());
+    }
+    for (const name of warehouseNames) {
+      warehouseCache.set(name, await getOrCreateByName("inv_warehouses", userId, name));
+    }
+    for (const name of supplierNames) {
+      supplierCache.set(name, await getOrCreateByName("inv_suppliers", userId, name));
+    }
 
+    // Row-level work (product upsert, batch insert, movement insert) is
+    // independent per row once warehouses/suppliers are cached, so it runs
+    // with bounded concurrency instead of one request at a time — a
+    // 150-row import was taking minutes as a strict sequential loop.
+    const CONCURRENCY = 12;
+    let cursor = 0;
+    let firstError: string | null = null;
+
+    async function processItem(item: (typeof activeItems)[number]) {
       const row = item.row;
-      const warehouseName = row.warehouseName || defaultWarehouseName;
-      const warehouseId = await resolveWarehouseId(warehouseName);
-      const supplierId = await resolveSupplierId(row.supplierName);
+      const warehouseId = warehouseCache.get((row.warehouseName || defaultWarehouseName).toLowerCase())!;
+      const supplierId = row.supplierName ? supplierCache.get(row.supplierName.toLowerCase())! : null;
 
       let productId = item.existingProductId ?? null;
 
       if (item.action === "new_product") {
-        const { data: product, error: productError } = await supabase
+        const { data: product, error: productError } = await supabase!
           .from("inv_products")
           .upsert(
             {
@@ -269,7 +279,7 @@ export async function commitReconciliation(
       if (!productId) throw new Error(`Missing product for row ${item.rowIndex + 1}`);
 
       if (item.action === "new_product" || item.action === "new_batch") {
-        const { data: batch, error: batchError } = await supabase
+        const { data: batch, error: batchError } = await supabase!
           .from("inv_batches")
           .insert({
             user_id: userId,
@@ -288,7 +298,7 @@ export async function commitReconciliation(
           .single();
         if (batchError || !batch) throw batchError ?? new Error("Failed to create batch");
 
-        await supabase.from("inv_stock_movements").insert({
+        await supabase!.from("inv_stock_movements").insert({
           user_id: userId,
           batch_id: batch.id,
           movement_type: "import",
@@ -299,7 +309,7 @@ export async function commitReconciliation(
           warehouse_id: warehouseId,
         });
       } else if (item.action === "update_batch" && item.existingBatchId) {
-        const { data: existingBatch, error: fetchError } = await supabase
+        const { data: existingBatch, error: fetchError } = await supabase!
           .from("inv_batches")
           .select("available_qty")
           .eq("id", item.existingBatchId)
@@ -308,7 +318,7 @@ export async function commitReconciliation(
 
         const previousQty = Number(existingBatch.available_qty);
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabase!
           .from("inv_batches")
           .update({
             quantity: row.quantity,
@@ -322,7 +332,7 @@ export async function commitReconciliation(
           .eq("id", item.existingBatchId);
         if (updateError) throw updateError;
 
-        await supabase.from("inv_stock_movements").insert({
+        await supabase!.from("inv_stock_movements").insert({
           user_id: userId,
           batch_id: item.existingBatchId,
           movement_type: "import",
@@ -335,6 +345,20 @@ export async function commitReconciliation(
       }
     }
 
+    async function worker() {
+      while (cursor < activeItems.length && !firstError) {
+        const item = activeItems[cursor++];
+        try {
+          await processItem(item);
+        } catch (err) {
+          if (!firstError) firstError = err instanceof Error ? err.message : "Import failed";
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+    if (firstError) return { error: firstError };
     return { error: null };
   } catch (err) {
     console.error("Failed to commit reconciliation:", err);
