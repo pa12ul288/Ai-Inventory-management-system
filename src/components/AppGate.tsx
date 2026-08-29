@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import AppShell from "./AppShell";
 import Login from "./Login";
+import Setup from "./Setup";
 import { useAppData, supabaseConfigured } from "@/lib/AppDataContext";
 
 export default function AppGate({ children }: { children: ReactNode }) {
@@ -28,6 +29,10 @@ export default function AppGate({ children }: { children: ReactNode }) {
 
   if (!session) {
     return <Login />;
+  }
+
+  if (!session.user.user_metadata?.company_name) {
+    return <Setup />;
   }
 
   if (loadingInventory) {

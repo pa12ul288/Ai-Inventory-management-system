@@ -1,37 +1,136 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useAppData } from "@/lib/AppDataContext";
+import { supabase } from "@/lib/supabaseClient";
+
+const BUSINESS_TYPES = ["Pharmaceutical Distributor", "Medical Equipment Distributor", "Wholesaler", "Pharmacy Chain", "Other"];
 
 export default function SettingsPage() {
-  const { session, warehouses, suppliers, customers, records } = useAppData();
+  const { session, warehouses, suppliers, customers, records, refreshInventory } = useAppData();
+  const metadata = session?.user?.user_metadata ?? {};
+
+  const [editing, setEditing] = useState(false);
+  const [companyName, setCompanyName] = useState(metadata.company_name ?? "");
+  const [businessType, setBusinessType] = useState(metadata.business_type ?? BUSINESS_TYPES[0]);
+  const [phone, setPhone] = useState(metadata.phone ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const memberSince = session?.user?.created_at ? new Date(session.user.created_at).toLocaleDateString() : "—";
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    if (!companyName.trim()) {
+      setError("Company name is required.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: { company_name: companyName.trim(), business_type: businessType, phone: phone.trim() || null },
+    });
+    setSaving(false);
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+    setEditing(false);
+    await refreshInventory();
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
       <h1 className="mb-6 text-2xl font-bold text-slate-900">Settings</h1>
 
       <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
-        <h2 className="mb-3 font-semibold text-slate-900">Company Profile</h2>
-        <dl className="grid grid-cols-2 gap-y-2 text-sm">
-          <dt className="text-slate-500">Account email</dt>
-          <dd className="text-right font-medium text-slate-800">{session?.user?.email ?? "—"}</dd>
-          <dt className="text-slate-500">Member since</dt>
-          <dd className="text-right font-medium text-slate-800">{memberSince}</dd>
-          <dt className="text-slate-500">Warehouses</dt>
-          <dd className="text-right font-medium text-slate-800">{warehouses.length}</dd>
-          <dt className="text-slate-500">Suppliers</dt>
-          <dd className="text-right font-medium text-slate-800">{suppliers.length}</dd>
-          <dt className="text-slate-500">Customers</dt>
-          <dd className="text-right font-medium text-slate-800">{customers.length}</dd>
-          <dt className="text-slate-500">Products tracked</dt>
-          <dd className="text-right font-medium text-slate-800">{new Set(records.map((r) => r.productId)).size}</dd>
-        </dl>
-        <p className="mt-3 text-xs text-slate-400">
-          There&apos;s one account per business right now, so this doubles as the company profile — no separate
-          company-name/logo fields are stored yet.
-        </p>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-slate-900">Company Profile</h2>
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+
+        {editing ? (
+          <form onSubmit={saveProfile} className="flex flex-col gap-3">
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700">Company name</span>
+              <input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700">Business type</span>
+              <select
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+              >
+                {BUSINESS_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700">Contact phone</span>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-60"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <dl className="grid grid-cols-2 gap-y-2 text-sm">
+            <dt className="text-slate-500">Company name</dt>
+            <dd className="text-right font-medium text-slate-800">{metadata.company_name ?? "—"}</dd>
+            <dt className="text-slate-500">Business type</dt>
+            <dd className="text-right font-medium text-slate-800">{metadata.business_type ?? "—"}</dd>
+            <dt className="text-slate-500">Contact phone</dt>
+            <dd className="text-right font-medium text-slate-800">{metadata.phone ?? "—"}</dd>
+            <dt className="text-slate-500">Account email</dt>
+            <dd className="text-right font-medium text-slate-800">{session?.user?.email ?? "—"}</dd>
+            <dt className="text-slate-500">Member since</dt>
+            <dd className="text-right font-medium text-slate-800">{memberSince}</dd>
+            <dt className="text-slate-500">Warehouses</dt>
+            <dd className="text-right font-medium text-slate-800">{warehouses.length}</dd>
+            <dt className="text-slate-500">Suppliers</dt>
+            <dd className="text-right font-medium text-slate-800">{suppliers.length}</dd>
+            <dt className="text-slate-500">Customers</dt>
+            <dd className="text-right font-medium text-slate-800">{customers.length}</dd>
+            <dt className="text-slate-500">Products tracked</dt>
+            <dd className="text-right font-medium text-slate-800">{new Set(records.map((r) => r.productId)).size}</dd>
+          </dl>
+        )}
       </div>
 
       <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
