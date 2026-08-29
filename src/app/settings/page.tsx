@@ -12,7 +12,7 @@ export default function SettingsPage() {
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
       <h1 className="mb-6 text-2xl font-bold text-slate-900">Settings</h1>
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-3 font-semibold text-slate-900">Company Profile</h2>
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
           <dt className="text-slate-500">Account email</dt>
@@ -34,7 +34,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-1 font-semibold text-slate-900">Data Import (Tally / Excel / CSV)</h2>
         <p className="mb-3 text-sm text-slate-500">
           Stock is kept current by uploading an export from Tally (or any spreadsheet) — there&apos;s no live API
@@ -56,7 +56,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-3 font-semibold text-slate-900">Warehouses ({warehouses.length})</h2>
         {warehouses.length === 0 ? (
           <p className="text-sm text-slate-400">
@@ -74,7 +74,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-3 font-semibold text-slate-900">Suppliers ({suppliers.length})</h2>
         {suppliers.length === 0 ? (
           <p className="text-sm text-slate-400">

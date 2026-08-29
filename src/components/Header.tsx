@@ -23,7 +23,7 @@ export default function Header() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6">
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white/80 px-6 backdrop-blur-sm">
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl">
         <div className="relative">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

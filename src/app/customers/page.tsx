@@ -101,7 +101,7 @@ export default function CustomersPage() {
         ]}
       />
 
-      <form onSubmit={onSubmit} className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <form onSubmit={onSubmit} className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-4">
         <p className="mb-3 text-sm font-semibold text-slate-800">Record a Sale on Credit</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <input
@@ -143,7 +143,7 @@ export default function CustomersPage() {
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       </form>
 
-      <div className="overflow-auto rounded-lg border border-slate-200">
+      <div className="overflow-auto rounded-xl border border-slate-200 shadow-sm shadow-slate-200/40">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50">
             <tr>
@@ -180,7 +180,7 @@ export default function CustomersPage() {
       {sortedInvoices.length > 0 && (
         <div className="mt-6">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Invoices</h2>
-          <div className="overflow-auto rounded-lg border border-slate-200">
+          <div className="overflow-auto rounded-xl border border-slate-200 shadow-sm shadow-slate-200/40">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>

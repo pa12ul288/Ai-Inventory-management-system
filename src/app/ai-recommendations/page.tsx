@@ -108,7 +108,7 @@ export default function AIRecommendationsPage() {
       </p>
 
       {nothingToShow ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-8 text-center text-sm text-slate-400">
           Nothing needs attention right now — inventory looks healthy.
         </div>
       ) : (
@@ -151,7 +151,7 @@ const BORDER: Record<Rec["tone"], string> = {
 
 function RecCard({ rec }: { rec: Rec }) {
   return (
-    <div className={`flex items-center justify-between gap-4 rounded-lg border border-slate-200 border-l-4 bg-white p-4 ${BORDER[rec.tone]}`}>
+    <div className={`flex items-center justify-between gap-4 rounded-xl border border-slate-200 border-l-4 bg-white p-4 shadow-sm shadow-slate-200/40 transition-shadow hover:shadow-md hover:shadow-slate-200/60 ${BORDER[rec.tone]}`}>
       <div>
         <p className="text-sm font-medium text-slate-800">{rec.title}</p>
         <p className="mt-1 text-xs text-slate-500">{rec.detail}</p>

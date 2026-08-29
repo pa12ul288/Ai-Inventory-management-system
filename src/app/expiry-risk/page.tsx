@@ -48,7 +48,7 @@ export default function ExpiryRiskPage() {
         ]}
       />
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-4 text-sm font-semibold text-slate-900">Value by Time Window</h2>
         <div className="flex flex-col gap-3">
           {bucketStats.map((b) => (

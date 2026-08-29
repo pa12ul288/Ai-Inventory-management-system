@@ -68,7 +68,7 @@ export default function WarehousePage() {
 
       <div className="flex flex-col gap-4">
         {rows.map((r) => (
-          <div key={r.id} className="rounded-lg border border-slate-200 bg-white p-5">
+          <div key={r.id} className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <h2 className="font-semibold text-slate-900">{r.name}</h2>
@@ -108,7 +108,7 @@ export default function WarehousePage() {
         ))}
 
         {rows.length === 0 && (
-          <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-6 text-center text-sm text-slate-400">
             No warehouses yet — they&apos;re created automatically the first time you add inventory to one.
           </div>
         )}

@@ -51,7 +51,7 @@ export default function CashFlowPage() {
         ]}
       />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
         <h2 className="mb-4 text-sm font-semibold text-slate-900">Receivables Aging</h2>
         {totalOverdue === 0 ? (
           <p className="text-sm text-slate-400">No overdue invoices right now.</p>
@@ -73,7 +73,7 @@ export default function CashFlowPage() {
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-4">
         <p className="text-sm text-slate-600">See which customers are driving overdue receivables.</p>
         <Link
           href="/customers"

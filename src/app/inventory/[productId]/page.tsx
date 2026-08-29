@@ -69,7 +69,7 @@ export default function ProductDetailPage() {
       />
 
       <h2 className="mb-3 text-sm font-semibold text-slate-900">Batches ({batches.length})</h2>
-      <div className="mb-8 overflow-auto rounded-lg border border-slate-200">
+      <div className="mb-8 overflow-auto rounded-xl border border-slate-200 shadow-sm shadow-slate-200/40">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50">
             <tr>
@@ -101,7 +101,7 @@ export default function ProductDetailPage() {
       </div>
 
       <h2 className="mb-3 text-sm font-semibold text-slate-900">Movement History</h2>
-      <div className="overflow-auto rounded-lg border border-slate-200">
+      <div className="overflow-auto rounded-xl border border-slate-200 shadow-sm shadow-slate-200/40">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50">
             <tr>

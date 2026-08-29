@@ -75,7 +75,7 @@ function ReportRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-5">
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">
       <div>
         <p className="font-medium text-slate-900">{title}</p>
         <p className="text-sm text-slate-500">{description}</p>

@@ -67,7 +67,7 @@ export default function ManualEntryForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-6">
       {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       {success && (
         <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

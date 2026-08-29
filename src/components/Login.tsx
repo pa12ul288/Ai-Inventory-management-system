@@ -114,20 +114,63 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-white px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-teal-600 text-base font-bold text-white">
+    <div className="flex min-h-screen w-full bg-white">
+      <div className="relative hidden w-[44%] flex-col justify-between overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-slate-900 px-12 py-12 text-white lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+        <div className="relative flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-base font-bold backdrop-blur-sm">
             M
           </span>
-          <h1 className="text-xl font-semibold text-slate-900">MedStock AI</h1>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your inventory dashboard</p>
+          <span className="text-base font-semibold tracking-tight">MedStock AI</span>
         </div>
 
-        {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-        {info && !error && (
-          <p className="mb-4 rounded-lg bg-teal-50 px-4 py-3 text-sm text-teal-700">{info}</p>
-        )}
+        <div className="relative">
+          <h2 className="max-w-sm text-3xl font-semibold leading-tight tracking-tight">
+            Inventory intelligence built for medical distributors.
+          </h2>
+          <ul className="mt-8 flex flex-col gap-4 text-sm text-teal-50/90">
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px]">✓</span>
+              Real expiry and reorder signals, computed from your actual batches
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px]">✓</span>
+              Receivables and cash-flow tracking per customer
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px]">✓</span>
+              Tally-compatible Excel import with reconciliation
+            </li>
+          </ul>
+        </div>
+
+        <p className="relative text-xs text-teal-100/60">© {new Date().getFullYear()} MedStock AI</p>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center text-center lg:hidden">
+            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-base font-bold text-white shadow-sm">
+              M
+            </span>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">MedStock AI</h1>
+          </div>
+          <div className="hidden lg:block">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
+          </div>
+          <p className="mb-8 mt-1 text-sm text-slate-500">Sign in to your inventory dashboard</p>
+
+          {error && <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          {info && !error && (
+            <p className="mb-4 rounded-lg bg-teal-50 px-4 py-3 text-sm text-teal-700">{info}</p>
+          )}
 
         {mode === "signin" && (
           <form onSubmit={handleSignIn} className="flex flex-col gap-4">
@@ -205,6 +248,7 @@ export default function Login() {
             <BackButton onClick={() => { resetMessages(); setMode("signin"); }} />
           </form>
         )}
+        </div>
       </div>
     </div>
   );
@@ -232,7 +276,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         required
         autoFocus={autoFocus}
-        className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
       />
     </label>
   );
@@ -243,7 +287,7 @@ function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; labe
     <button
       type="submit"
       disabled={loading}
-      className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-teal-300"
+      className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-teal-600/20 transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-teal-300"
     >
       {loading ? loadingLabel : label}
     </button>

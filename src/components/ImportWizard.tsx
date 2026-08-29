@@ -97,7 +97,7 @@ export default function ImportWizard() {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-6">
       <WizardSteps step={step} />
 
       {error && <p className="mb-4 mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}

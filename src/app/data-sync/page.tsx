@@ -36,7 +36,7 @@ export default function DataSyncPage() {
         ]}
       />
 
-      <div className="mb-4 flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-4">
         <p className="text-sm text-slate-600">Upload a new Tally or generic Excel/CSV export to reconcile stock.</p>
         <Link
           href="/inventory/add"
@@ -46,7 +46,7 @@ export default function DataSyncPage() {
         </Link>
       </div>
 
-      <div className="overflow-auto rounded-lg border border-slate-200">
+      <div className="overflow-auto rounded-xl border border-slate-200 shadow-sm shadow-slate-200/40">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50">
             <tr>
