@@ -135,3 +135,42 @@ create policy "Users manage their own batches" on inv_batches
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users manage their own stock movements" on inv_stock_movements
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------
+-- Customers & invoices — minimal receivables model for Cash Flow and
+-- Customers pages. An invoice with paid_date null is outstanding; its
+-- due_date drives the overdue/aging calculations.
+-- ---------------------------------------------------------------------
+
+create table if not exists inv_customers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  contact_info text,
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+create table if not exists inv_invoices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  customer_id uuid not null references inv_customers(id) on delete cascade,
+  amount numeric not null default 0,
+  issued_date date not null default current_date,
+  due_date date,
+  paid_date date,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists inv_customers_user_id_idx on inv_customers (user_id);
+create index if not exists inv_invoices_user_id_idx on inv_invoices (user_id);
+create index if not exists inv_invoices_customer_id_idx on inv_invoices (customer_id);
+
+alter table inv_customers enable row level security;
+alter table inv_invoices enable row level security;
+
+create policy "Users manage their own customers" on inv_customers
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users manage their own invoices" on inv_invoices
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

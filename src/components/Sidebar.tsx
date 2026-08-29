@@ -12,12 +12,18 @@ import {
   ReportsIcon,
   SettingsIcon,
   LogoutIcon,
+  CustomersIcon,
+  CashFlowIcon,
+  ForecastIcon,
 } from "./icons";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: DashboardIcon },
   { label: "Inventory", href: "/inventory", icon: InventoryIcon },
   { label: "AI Recommendations", href: "/ai-recommendations", icon: SparkleIcon },
+  { label: "Demand Forecast", href: "/demand-forecast", icon: ForecastIcon },
+  { label: "Cash Flow", href: "/cash-flow", icon: CashFlowIcon },
+  { label: "Customers", href: "/customers", icon: CustomersIcon },
   { label: "Suppliers", href: "/suppliers", icon: SupplierIcon },
   { label: "Warehouse", href: "/warehouse", icon: WarehouseIcon },
   { label: "Reports", href: "/reports", icon: ReportsIcon },

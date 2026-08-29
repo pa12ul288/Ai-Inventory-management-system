@@ -179,6 +179,35 @@ export function AvatarIcon({ className = base }: IconProps) {
   );
 }
 
+export function CustomersIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="7" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <path d="M16.5 4.5a3.2 3.2 0 0 1 0 6.4" />
+      <path d="M21 20c0-2.8-2-5.1-4.7-5.8" />
+    </svg>
+  );
+}
+
+export function CashFlowIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 17 9 11l4 4 8-8" />
+      <path d="M21 7h-6v6" />
+    </svg>
+  );
+}
+
+export function ForecastIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 3v18h18" />
+      <path d="M7 15l3-4 3 2 5-7" strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
 export function FilterIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>

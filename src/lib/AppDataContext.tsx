@@ -7,13 +7,18 @@ import {
   fetchInventoryRecords,
   fetchWarehouses,
   fetchSuppliers,
+  fetchCustomers,
+  fetchInvoices,
   commitReconciliation,
   addManualBatch,
   updateBatchStatuses,
+  addInvoice,
+  markInvoicePaid,
   type ManualBatchInput,
+  type InvoiceInput,
 } from "./inventoryData";
 import { computeKpis } from "./kpis";
-import type { BatchStatus, DashboardKpis, InventoryRecord, ReconciliationSummary, Supplier, Warehouse } from "./types";
+import type { BatchStatus, Customer, DashboardKpis, Invoice, InventoryRecord, ReconciliationSummary, Supplier, Warehouse } from "./types";
 
 interface AppDataValue {
   session: Session | null | undefined;
@@ -22,11 +27,15 @@ interface AppDataValue {
   kpis: DashboardKpis;
   warehouses: Warehouse[];
   suppliers: Supplier[];
+  customers: Customer[];
+  invoices: Invoice[];
   hasInventory: boolean;
   refreshInventory: () => Promise<void>;
   handleManualAdd: (input: ManualBatchInput) => Promise<{ error: string | null }>;
   handleImportCommit: (summary: ReconciliationSummary, defaultWarehouseName: string) => Promise<{ error: string | null }>;
   handleUpdateBatchStatuses: (batchIds: string[], status: BatchStatus) => Promise<{ error: string | null }>;
+  handleAddInvoice: (input: InvoiceInput) => Promise<{ error: string | null }>;
+  handleMarkInvoicePaid: (invoiceId: string) => Promise<{ error: string | null }>;
   handleLogout: () => Promise<void>;
 }
 
@@ -38,6 +47,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [records, setRecords] = useState<InventoryRecord[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -49,10 +60,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadAll() {
-    const [recs, whs, sups] = await Promise.all([fetchInventoryRecords(), fetchWarehouses(), fetchSuppliers()]);
+    const [recs, whs, sups, custs, invs] = await Promise.all([
+      fetchInventoryRecords(),
+      fetchWarehouses(),
+      fetchSuppliers(),
+      fetchCustomers(),
+      fetchInvoices(),
+    ]);
     setRecords(recs);
     setWarehouses(whs);
     setSuppliers(sups);
+    setCustomers(custs);
+    setInvoices(invs);
   }
 
   // Inventory always loads from Supabase on sign-in, never from leftover
@@ -95,12 +114,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return result;
   }
 
+  async function handleAddInvoice(input: InvoiceInput) {
+    const result = await addInvoice(input);
+    if (!result.error) await loadAll();
+    return result;
+  }
+
+  async function handleMarkInvoicePaid(invoiceId: string) {
+    const result = await markInvoicePaid(invoiceId);
+    if (!result.error) await loadAll();
+    return result;
+  }
+
   async function handleLogout() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setRecords([]);
     setWarehouses([]);
     setSuppliers([]);
+    setCustomers([]);
+    setInvoices([]);
   }
 
   const kpis = useMemo(() => computeKpis(records), [records]);
@@ -112,11 +145,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     kpis,
     warehouses,
     suppliers,
+    customers,
+    invoices,
     hasInventory: records.length > 0,
     refreshInventory: loadAll,
     handleManualAdd,
     handleImportCommit,
     handleUpdateBatchStatuses,
+    handleAddInvoice,
+    handleMarkInvoicePaid,
     handleLogout,
   };
 

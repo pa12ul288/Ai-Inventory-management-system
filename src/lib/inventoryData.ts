@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { computeExpiryStatus, computeStockStatus } from "./stockStatus";
-import type { BatchStatus, InventoryRecord, ReconciliationSummary, Supplier, Warehouse } from "./types";
+import type { BatchStatus, Customer, Invoice, InventoryRecord, ReconciliationSummary, Supplier, Warehouse } from "./types";
 
 export const DEFAULT_WAREHOUSE_NAME = "Default Warehouse";
 
@@ -340,6 +340,126 @@ export async function commitReconciliation(
     console.error("Failed to commit reconciliation:", err);
     return { error: err instanceof Error ? err.message : "Import failed" };
   }
+}
+
+export async function fetchCustomers(): Promise<Customer[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("inv_customers").select("id, name, contact_info").order("name");
+  if (error) {
+    console.error("Failed to fetch customers:", error);
+    return [];
+  }
+  return (data ?? []).map((c) => ({ id: c.id, name: c.name, contactInfo: c.contact_info }));
+}
+
+function computeInvoiceStatus(dueDate: string | null, paidDate: string | null): { status: Invoice["status"]; daysOverdue: number | null } {
+  if (paidDate) return { status: "paid", daysOverdue: null };
+  if (!dueDate) return { status: "pending", daysOverdue: null };
+  const due = new Date(dueDate);
+  const today = new Date();
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays > 0) return { status: "overdue", daysOverdue: diffDays };
+  return { status: "pending", daysOverdue: null };
+}
+
+export async function fetchInvoices(): Promise<Invoice[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("inv_invoices")
+    .select("id, customer_id, amount, issued_date, due_date, paid_date, notes, customers:inv_customers ( name )")
+    .order("issued_date", { ascending: false });
+  if (error) {
+    console.error("Failed to fetch invoices:", error);
+    return [];
+  }
+
+  type InvoiceRow = {
+    id: string;
+    customer_id: string;
+    amount: number;
+    issued_date: string;
+    due_date: string | null;
+    paid_date: string | null;
+    notes: string | null;
+    customers: { name: string } | null;
+  };
+
+  return ((data ?? []) as unknown as InvoiceRow[]).map((inv) => {
+    const { status, daysOverdue } = computeInvoiceStatus(inv.due_date, inv.paid_date);
+    return {
+      id: inv.id,
+      customerId: inv.customer_id,
+      customerName: inv.customers?.name ?? "Unknown customer",
+      amount: Number(inv.amount),
+      issuedDate: inv.issued_date,
+      dueDate: inv.due_date,
+      paidDate: inv.paid_date,
+      notes: inv.notes,
+      status,
+      daysOverdue,
+    };
+  });
+}
+
+export interface InvoiceInput {
+  customerName: string;
+  amount: number;
+  issuedDate: string;
+  dueDate: string | null;
+}
+
+/** Records a sale on credit for a customer, creating the customer if this
+ * is their first invoice. */
+export async function addInvoice(input: InvoiceInput): Promise<{ error: string | null }> {
+  if (!supabase) return { error: "Supabase is not configured." };
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) return { error: "Not signed in." };
+  const userId = userData.user.id;
+
+  try {
+    const { data: existing } = await supabase
+      .from("inv_customers")
+      .select("id")
+      .eq("user_id", userId)
+      .ilike("name", input.customerName)
+      .maybeSingle();
+
+    let customerId = existing?.id as string | undefined;
+    if (!customerId) {
+      const { data: customer, error: customerError } = await supabase
+        .from("inv_customers")
+        .insert({ user_id: userId, name: input.customerName })
+        .select("id")
+        .single();
+      if (customerError || !customer) throw customerError ?? new Error("Failed to create customer");
+      customerId = customer.id;
+    }
+
+    const { error: invoiceError } = await supabase.from("inv_invoices").insert({
+      user_id: userId,
+      customer_id: customerId,
+      amount: input.amount,
+      issued_date: input.issuedDate,
+      due_date: input.dueDate,
+    });
+    if (invoiceError) throw invoiceError;
+
+    return { error: null };
+  } catch (err) {
+    console.error("Failed to add invoice:", err);
+    return { error: err instanceof Error ? err.message : "Failed to save" };
+  }
+}
+
+export async function markInvoicePaid(invoiceId: string): Promise<{ error: string | null }> {
+  if (!supabase) return { error: "Supabase is not configured." };
+  const { error } = await supabase
+    .from("inv_invoices")
+    .update({ paid_date: new Date().toISOString().slice(0, 10) })
+    .eq("id", invoiceId);
+  return { error: error ? error.message : null };
 }
 
 export interface ManualBatchInput {

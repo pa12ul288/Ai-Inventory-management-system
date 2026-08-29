@@ -139,6 +139,29 @@ export interface ReconciliationSummary {
   items: ReconciliationItem[];
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  contactInfo: string | null;
+}
+
+/** paid = has a paid_date. overdue = unpaid and past due_date. pending =
+ * unpaid and not yet (or no) due_date. */
+export type InvoiceStatus = "paid" | "overdue" | "pending";
+
+export interface Invoice {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  issuedDate: string;
+  dueDate: string | null;
+  paidDate: string | null;
+  notes: string | null;
+  status: InvoiceStatus;
+  daysOverdue: number | null;
+}
+
 export interface DashboardKpis {
   totalInventoryValue: number;
   totalSkus: number;
