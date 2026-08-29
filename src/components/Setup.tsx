@@ -7,6 +7,7 @@ const BUSINESS_TYPES = ["Pharmaceutical Distributor", "Medical Equipment Distrib
 
 export default function Setup() {
   const [companyName, setCompanyName] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
   const [businessType, setBusinessType] = useState(BUSINESS_TYPES[0]);
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
@@ -31,6 +32,12 @@ export default function Setup() {
     }
     // The app's auth listener picks up the updated session and moves
     // straight to the dashboard — no navigation needed here.
+  }
+
+  async function onSignOut() {
+    if (!supabase) return;
+    setSigningOut(true);
+    await supabase.auth.signOut();
   }
 
   return (
@@ -94,6 +101,15 @@ export default function Setup() {
             {saving ? "Saving…" : "Continue to Dashboard"}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={onSignOut}
+          disabled={signingOut}
+          className="mt-4 w-full text-center text-xs text-slate-400 underline hover:text-slate-600 disabled:opacity-60"
+        >
+          {signingOut ? "Signing out…" : "Not you? Log out"}
+        </button>
       </div>
     </div>
   );
