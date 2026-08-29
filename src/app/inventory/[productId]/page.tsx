@@ -32,7 +32,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+      <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <Link href="/inventory" className="text-sm text-teal-600 hover:underline">
           ← Back to Inventory
         </Link>
@@ -44,7 +44,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <Link href="/inventory" className="text-sm text-teal-600 hover:underline">
         ← Back to Inventory
       </Link>

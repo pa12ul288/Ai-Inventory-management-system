@@ -38,7 +38,7 @@ export default function CashFlowPage() {
   const maxBucket = Math.max(1, ...buckets.map((b) => b.amount));
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Cash Flow</h1>
       <p className="mb-6 text-sm text-slate-500">Cash tied up in receivables and inventory, from real recorded data.</p>
 

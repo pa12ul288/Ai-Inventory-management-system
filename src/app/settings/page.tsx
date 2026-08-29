@@ -42,7 +42,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-6 text-2xl font-bold text-slate-900">Settings</h1>
 
       <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/40 p-5">

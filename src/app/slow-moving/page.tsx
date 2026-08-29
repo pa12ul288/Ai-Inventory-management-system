@@ -16,7 +16,7 @@ export default function SlowMovingPage() {
   const overstockValue = overstock.reduce((s, r) => s + r.value, 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Slow-Moving Stock</h1>
       <p className="mb-6 text-sm text-slate-500">
         Batches with zero recorded sales, plus stock well beyond 180 days of cover at the current sales rate.

@@ -20,7 +20,7 @@ export default function DataSyncPage() {
   const positiveQty = history.filter((h) => h.quantityChange > 0).length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Data Sync</h1>
       <p className="mb-6 text-sm text-slate-500">
         There&apos;s no live connection to Tally or any external system — imports happen by uploading an

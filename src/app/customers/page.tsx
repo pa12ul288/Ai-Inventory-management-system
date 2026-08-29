@@ -88,7 +88,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Customers</h1>
       <p className="mb-6 text-sm text-slate-500">Receivables by customer, from invoices you record here.</p>
 

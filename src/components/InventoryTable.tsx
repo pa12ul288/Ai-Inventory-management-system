@@ -114,8 +114,8 @@ export default function InventoryTable({
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold text-slate-900">Inventory ({filteredRecords.length})</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="relative w-full sm:w-auto">
             <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -125,7 +125,7 @@ export default function InventoryTable({
                 setPage(1);
               }}
               placeholder="Search product, SKU, or batch…"
-              className="w-64 rounded-lg border border-slate-300 bg-white py-1.5 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 sm:w-64"
             />
           </div>
           <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300 bg-white p-1">

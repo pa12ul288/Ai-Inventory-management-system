@@ -28,7 +28,7 @@ export default function InventoryPage() {
   const initialSearch = searchParams.get("search") ?? "";
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
         <Link

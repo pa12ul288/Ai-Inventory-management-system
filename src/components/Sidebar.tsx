@@ -19,6 +19,7 @@ import {
   ReorderIcon,
   TrendingDownIcon,
   DataSyncIcon,
+  CloseIcon,
 } from "./icons";
 
 const NAV_GROUPS: { label: string; items: { label: string; href: string; icon: typeof DashboardIcon }[] }[] = [
@@ -57,7 +58,7 @@ const NAV_GROUPS: { label: string; items: { label: string; href: string; icon: t
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { handleLogout } = useAppData();
 
@@ -66,16 +67,24 @@ export default function Sidebar() {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
+  const content = (
+    <>
       <div className="flex h-16 items-center gap-2.5 px-6">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-sm font-bold text-white shadow-sm shadow-teal-900/20">
           M
         </span>
-        <div className="leading-tight">
-          <p className="text-[15px] font-semibold tracking-tight text-slate-900">MedStock AI</p>
-          <p className="text-[11px] font-medium text-slate-400">Inventory Intelligence</p>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-[15px] font-semibold tracking-tight text-slate-900">MedStock AI</p>
+          <p className="truncate text-[11px] font-medium text-slate-400">Inventory Intelligence</p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close menu"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:hidden"
+        >
+          <CloseIcon className="h-5 w-5" />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-3">
@@ -91,6 +100,7 @@ export default function Sidebar() {
                   <li key={label}>
                     <Link
                       href={href}
+                      onClick={onClose}
                       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         isActive
                           ? "bg-teal-50 text-teal-700"
@@ -113,6 +123,7 @@ export default function Sidebar() {
           <li>
             <Link
               href="/settings"
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 pathname === "/settings" ? "bg-teal-50 text-teal-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
@@ -133,6 +144,30 @@ export default function Sidebar() {
           </li>
         </ul>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: static column */}
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">{content}</aside>
+
+      {/* Mobile: slide-in drawer + overlay */}
+      <div
+        className={`fixed inset-0 z-40 bg-slate-900/40 transition-opacity duration-200 md:hidden ${
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-200 md:hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-hidden={!isOpen}
+      >
+        {content}
+      </aside>
+    </>
   );
 }

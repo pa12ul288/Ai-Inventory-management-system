@@ -10,7 +10,7 @@ export default function AddInventoryPage() {
   const [tab, setTab] = useState<Tab>("manual");
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="mb-1 text-2xl font-bold text-slate-900">Add Inventory</h1>
       <p className="mb-6 text-sm text-slate-500">Enter a single batch manually, or import a full file with reconciliation.</p>
 
