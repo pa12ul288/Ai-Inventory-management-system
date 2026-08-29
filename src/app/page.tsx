@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useAppData } from "@/lib/AppDataContext";
 import PageStats from "@/components/PageStats";
 import InventoryTable from "@/components/InventoryTable";
+import AIBriefing from "@/components/AIBriefing";
 import { formatInr } from "@/lib/format";
 import type { FilterValue } from "@/components/InventoryTable";
 
@@ -72,6 +73,22 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      <AIBriefing
+        input={{
+          companyName: (session?.user?.user_metadata?.company_name as string | undefined) ?? null,
+          totalInventoryValue: kpis.totalInventoryValue,
+          capitalAtRisk,
+          outOfStockCount: kpis.outOfStockCount,
+          lowStockCount: kpis.lowStockCount,
+          nearExpiryCount: kpis.nearExpiryCount,
+          nearExpiryValue: kpis.nearExpiryValue,
+          expiredCount: kpis.expiredCount,
+          expiredValue: kpis.expiredValue,
+          overdueReceivablesCount: invoices.filter((i) => i.status === "overdue").length,
+          overdueReceivablesValue: overdueReceivables,
+        }}
+      />
 
       <PageStats
         items={[
