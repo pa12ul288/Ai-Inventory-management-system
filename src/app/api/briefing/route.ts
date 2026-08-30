@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export interface BriefingInput {
   companyName: string | null;
@@ -14,7 +15,7 @@ export interface BriefingInput {
   overdueReceivablesValue: number;
 }
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-3.6-flash"; // gemini-2.0-flash and gemini-2.5-flash both 404 on this key — verified directly against the live API.
 
 function buildPrompt(d: BriefingInput): string {
   return `You are writing a short daily briefing for the owner of ${d.companyName ?? "a medical/pharmaceutical distribution business"}. Use the numbers below — do not invent any numbers not given here. Write 2-4 sentences, plain English, no markdown, no bullet points, direct and specific (name the biggest risk first). Indian rupee amounts should use the ₹ symbol and lakh/crore style where natural (e.g. ₹4.2L).
@@ -35,6 +36,24 @@ export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "AI briefing isn't configured on this deployment." }, { status: 503 });
+  }
+
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json({ error: "Auth isn't configured on this deployment." }, { status: 503 });
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: userData, error: userError } = await authClient.auth.getUser(token);
+  if (userError || !userData.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let input: BriefingInput;
@@ -58,6 +77,7 @@ export async function POST(request: Request) {
             thinkingConfig: { thinkingLevel: "low" },
           },
         }),
+        signal: AbortSignal.timeout(8000),
       }
     );
 

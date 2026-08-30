@@ -23,6 +23,7 @@ import type { BatchStatus, Customer, DashboardKpis, Invoice, InventoryRecord, Re
 interface AppDataValue {
   session: Session | null | undefined;
   loadingInventory: boolean;
+  loadError: string | null;
   records: InventoryRecord[];
   kpis: DashboardKpis;
   warehouses: Warehouse[];
@@ -44,6 +45,7 @@ const AppDataContext = createContext<AppDataValue | null>(null);
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(() => (supabase ? undefined : null));
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [records, setRecords] = useState<InventoryRecord[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -84,8 +86,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setLoadingInventory(true);
       try {
         await loadAll();
+        if (!cancelled) setLoadError(null);
       } catch (e) {
         console.error("Failed to load inventory data from Supabase:", e);
+        if (!cancelled) setLoadError("Failed to load inventory. Check your connection and refresh.");
       } finally {
         if (!cancelled) setLoadingInventory(false);
       }
@@ -141,6 +145,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const value: AppDataValue = {
     session,
     loadingInventory,
+    loadError,
     records,
     kpis,
     warehouses,

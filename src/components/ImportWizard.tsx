@@ -11,6 +11,8 @@ import type { ImportRow, ReconciliationSummary } from "@/lib/types";
 
 type Step = "upload" | "map" | "preview" | "done";
 
+const MAX_IMPORT_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
 export default function ImportWizard() {
   const router = useRouter();
   const { handleImportCommit } = useAppData();
@@ -32,6 +34,10 @@ export default function ImportWizard() {
     setError(null);
     if (!/\.(csv|xlsx|xls)$/i.test(file.name)) {
       setError("Please upload a .csv, .xlsx, or .xls file.");
+      return;
+    }
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      setError("That file is larger than 10MB — split it into smaller files and import them separately.");
       return;
     }
     try {

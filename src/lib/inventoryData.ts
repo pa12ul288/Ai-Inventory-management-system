@@ -242,6 +242,15 @@ export async function commitReconciliation(
       supplierCache.set(name, await getOrCreateByName("inv_suppliers", userId, name));
     }
 
+    // There is no DB-level transaction wrapping the row-level writes below
+    // — Postgres doesn't let a client hold one open across many round
+    // trips, and a real transaction here would need a Supabase RPC/stored
+    // procedure (TODO: follow-up PR). The warehouse/supplier pre-flight
+    // resolution above is the only guard against a partially-broken
+    // import: it fails fast, before any product/batch write happens, if a
+    // warehouse or supplier can't be created. Once row-level writes start,
+    // an error partway through still leaves earlier rows committed.
+
     // Row-level work (product upsert, batch insert, movement insert) is
     // independent per row once warehouses/suppliers are cached, so it runs
     // with bounded concurrency instead of one request at a time — a
@@ -279,21 +288,29 @@ export async function commitReconciliation(
       if (!productId) throw new Error(`Missing product for row ${item.rowIndex + 1}`);
 
       if (item.action === "new_product" || item.action === "new_batch") {
+        // upsert rather than insert: a product/batch with no batch number
+        // in the file collapses to the same "UNSPECIFIED" batch_number on
+        // every re-import, and the table's unique constraint on
+        // (user_id, product_id, warehouse_id, batch_number) would otherwise
+        // reject the second import outright instead of updating it.
         const { data: batch, error: batchError } = await supabase!
           .from("inv_batches")
-          .insert({
-            user_id: userId,
-            product_id: productId,
-            warehouse_id: warehouseId,
-            batch_number: row.batchNumber || "UNSPECIFIED",
-            manufacturing_date: row.manufacturingDate,
-            expiry_date: row.expiryDate,
-            quantity: row.quantity,
-            available_qty: row.quantity,
-            purchase_price: row.purchasePrice,
-            supplier_id: supplierId,
-            status: "active",
-          })
+          .upsert(
+            {
+              user_id: userId,
+              product_id: productId,
+              warehouse_id: warehouseId,
+              batch_number: row.batchNumber || "UNSPECIFIED",
+              manufacturing_date: row.manufacturingDate,
+              expiry_date: row.expiryDate,
+              quantity: row.quantity,
+              available_qty: row.quantity,
+              purchase_price: row.purchasePrice,
+              supplier_id: supplierId,
+              status: "active",
+            },
+            { onConflict: "user_id,product_id,warehouse_id,batch_number", ignoreDuplicates: false }
+          )
           .select("id")
           .single();
         if (batchError || !batch) throw batchError ?? new Error("Failed to create batch");
@@ -358,7 +375,14 @@ export async function commitReconciliation(
 
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-    if (firstError) return { error: firstError };
+    if (firstError) {
+      console.error(
+        `PARTIAL IMPORT: ${firstError} — ${activeItems.length} items were processed, some may have been committed. User should re-import to reconcile.`
+      );
+      return {
+        error: `${firstError} — some rows may have been saved. Re-importing will reconcile quantities correctly.`,
+      };
+    }
     return { error: null };
   } catch (err) {
     console.error("Failed to commit reconciliation:", err);
@@ -479,10 +503,14 @@ export async function addInvoice(input: InvoiceInput): Promise<{ error: string |
 
 export async function markInvoicePaid(invoiceId: string): Promise<{ error: string | null }> {
   if (!supabase) return { error: "Supabase is not configured." };
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) return { error: "Not signed in." };
+
   const { error } = await supabase
     .from("inv_invoices")
     .update({ paid_date: new Date().toISOString().slice(0, 10) })
-    .eq("id", invoiceId);
+    .eq("id", invoiceId)
+    .eq("user_id", userData.user.id);
   return { error: error ? error.message : null };
 }
 

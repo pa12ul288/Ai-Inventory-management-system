@@ -10,7 +10,7 @@ import { useAppData, supabaseConfigured } from "@/lib/AppDataContext";
 
 export default function AppGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { session, loadingInventory, hasInventory } = useAppData();
+  const { session, loadingInventory, loadError, hasInventory } = useAppData();
 
   if (!supabaseConfigured) {
     return (
@@ -65,5 +65,12 @@ export default function AppGate({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell>
+      {loadError && (
+        <div className="mx-4 mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{loadError}</div>
+      )}
+      {children}
+    </AppShell>
+  );
 }

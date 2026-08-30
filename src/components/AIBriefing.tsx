@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SparkleIcon } from "./icons";
+import { supabase } from "@/lib/supabaseClient";
 import type { BriefingInput } from "@/app/api/briefing/route";
 
 export default function AIBriefing({ input }: { input: BriefingInput }) {
@@ -16,9 +17,15 @@ export default function AIBriefing({ input }: { input: BriefingInput }) {
       setLoading(true);
       setError(null);
       try {
+        const accessToken = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined;
+        if (!accessToken) {
+          if (!cancelled) setError("AI briefing unavailable right now.");
+          return;
+        }
+
         const res = await fetch("/api/briefing", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify(input),
         });
         const data = await res.json();

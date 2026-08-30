@@ -20,8 +20,12 @@ export function computeExpiryStatus(expiryDate: string | null): { daysToExpiry: 
  * - low_stock: at or below the product's reorder point (only meaningful
  *   once a reorder point is actually set).
  * - overstock: more than ~6 months of stock at the current sales rate.
- * - slow_moving: sitting in stock with zero recorded sales.
- * - healthy: everything else. */
+ * - slow_moving: stock exists above a deliberately-set reorder point, but
+ *   zero sales have been recorded — a reorder point of 0 means the product
+ *   was never configured for reorder tracking, so it's left healthy rather
+ *   than flagged.
+ * - healthy: everything else, including unconfigured products with no
+ *   sales history. */
 export function computeStockStatus(
   availableQty: number,
   reorderPoint: number,
@@ -30,7 +34,7 @@ export function computeStockStatus(
   if (availableQty <= 0) return "out_of_stock";
   if (reorderPoint > 0 && availableQty <= reorderPoint) return "low_stock";
   if (avgDailySales > 0 && availableQty / avgDailySales > 180) return "overstock";
-  if (avgDailySales === 0) return "slow_moving";
+  if (avgDailySales === 0 && reorderPoint > 0 && availableQty > reorderPoint) return "slow_moving";
   return "healthy";
 }
 
